@@ -1,0 +1,27 @@
+KODGA QO‘SHILGAN YANGILANISHLAR
+==============================
+
+1. O‘quvchiga faqat admin tanlagan bitta til ko‘rinadi.
+2. Til kartalari o‘rnida shu tilning darajalari ko‘rsatiladi.
+3. Daraja nomlaridan raqam va foiz oralig‘i olib tashlandi.
+4. Admin tanlagan boshlang‘ich daraja ochiq, qolganlari qulflangan.
+5. Qulf bosilganda sabab va admin bilan bog‘lanish xabari chiqadi.
+6. Har mavzuda aynan 10 ta savol va 80% o‘tish talabi bor.
+7. Har darajada aynan 10 savollik yakuniy test bor.
+8. Yakuniy testdan 80%+ olinsa keyingi daraja avtomatik ochiladi.
+9. 80% dan past natijada keyingi daraja ochilmaydi.
+10. Har tugatilgan daraja uchun QR kodli PDF sertifikat yaratiladi.
+11. QR kod sertifikatni ochiq tekshirish sahifasida ko‘rsatadi.
+12. Admin sertifikatlarni ko‘radi, qidiradi va PDF shaklida yuklab oladi.
+13. Saytga berilgan beshta rang, soyalar, hover, transition va animatsiyalar qo‘shildi.
+14. PowerShell uchun ma’lumotlarni yaratish buyrug‘i: py manage.py seed_languages
+
+YANGI O'QUVCHI BOSH SAHIFASI
+- O'quvchiga faqat admin biriktirgan bitta fan ko'rinadi.
+- Fan kartalari o'rniga tanlangan fan darajalari ko'rsatiladi.
+- Yopiq darajalar qulf holatida; bosilganda sabab chiqadi.
+- Joriy ochiq darajaning mavzulari bosh sahifada darhol yuklanadi.
+- Ochiq mavzulardagi dars va testlarga shu bo'limdan kiriladi.
+- 80%+ natijadan keyingi mavzu va yakuniy testdan keyingi daraja avtomatik ochiladi.
+- Ranglar Dark Amethyst, Stormy Teal, Black Forest, Olive Leaf va Jungle Teal palitrasida uyg'unlashtirildi.
+- Kartalar, soyalar, hover, transition va kirish animatsiyalari yaxshilandi.

@@ -1,0 +1,29 @@
+GITHUB REPOSITORY:
+https://github.com/azizacademylanguage/alazizacademylanguage.git
+
+ENG OSON USUL:
+1. ZIP faylni oching.
+2. alaziz_github_ready papkasiga kiring.
+3. Papka ichida PowerShell oching.
+4. Quyidagini bajaring:
+
+powershell -ExecutionPolicy Bypass -File .\githubga_yuklash.ps1
+
+GitHub login oynasi chiqsa, repository egasi bo'lgan hisob bilan kiring.
+
+QO'LDA BAJARISH:
+git init
+git add .
+git commit -m "AL-AZIZ language platform"
+git branch -M main
+git remote add origin https://github.com/azizacademylanguage/alazizacademylanguage.git
+git push -u origin main
+
+Agar origin already exists chiqsa:
+git remote set-url origin https://github.com/azizacademylanguage/alazizacademylanguage.git
+git push -u origin main
+
+Agar repositoryda oldindan fayllar mavjud bo'lib push rad etilsa va ularni almashtirish kerak bo'lsa:
+git push -u origin main --force
+
+OGOHLANTIRISH: --force repositorydagi eski fayllarni almashtirishi mumkin.

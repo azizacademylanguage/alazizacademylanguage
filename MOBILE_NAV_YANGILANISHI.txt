@@ -1,0 +1,11 @@
+TELEFON VERSIYA YANGILANISHLARI
+
+- 1024px dan kichik ekranlarda chap sidebar yashiriladi.
+- Barcha asosiy bo'limlar telefon ekranining pastida ikonli navigatsiya sifatida chiqadi.
+- Faol bo'lim rangli gradient, soya va indikator bilan ajratiladi.
+- O'quvchi panelidagi 6 ta tugma 320px ekranlarda ham sig'adi.
+- Admin panelidagi ko'p tugmalar pastki panelda yon tomonga surib ko'riladi.
+- Yuqorida ixcham logo, rol, foydalanuvchi belgisi va chiqish tugmasi qoladi.
+- Telefonning safe-area qismi hisobga olindi.
+- Kontent pastki navigatsiya ostida qolib ketmaydi.
+- Desktop versiyada eski sidebar o'zgarmaydi.

@@ -1,0 +1,22 @@
+Django==5.1.6
+djangorestframework==3.15.2
+djangorestframework-simplejwt==5.4.0
+django-cors-headers==4.6.0
+PyJWT==2.10.1
+anthropic==0.40.0
+Pillow==11.0.0
+# Eslatma: Django 5.1 Python 3.10, 3.11, 3.12, 3.13 bilan ishlaydi.
+# (Django 6.0+ faqat Python 3.12+ talab qiladi — shuning uchun bu versiya tanlandi.)
+
+# Writing mashqlarini AI orqali baholash uchun ANTHROPIC_API_KEY muhit
+# o'zgaruvchisi kerak. O'rnatilmagan bo'lsa, tizim oddiy (so'z sonini
+# hisoblovchi) fallback bilan ishlashda davom etadi.
+
+reportlab==4.2.5
+qrcode==8.0
+# Production / Railway
+# Railway rasmiy Django tavsiyasiga mos WSGI, static va PostgreSQL paketlari.
+gunicorn>=23.0,<24.0
+whitenoise>=6.8,<7.0
+dj-database-url>=2.2,<3.0
+psycopg[binary]>=3.2,<4.0
