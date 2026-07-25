@@ -474,3 +474,126 @@ class AdminAmalLog(models.Model):
 
     def __str__(self):
         return f"{self.foydalanuvchi} - {self.amal} - {self.created_at:%Y-%m-%d %H:%M}"
+
+# ==================== AI YORDAMCHI ====================
+
+class AIYordamchiXabar(models.Model):
+    ROLE_USER = 'user'
+    ROLE_ASSISTANT = 'assistant'
+    ROLE_CHOICES = ((ROLE_USER, "O'quvchi"), (ROLE_ASSISTANT, 'AI yordamchi'))
+
+    oquvchi = models.ForeignKey(User, on_delete=models.CASCADE, related_name='ai_yordamchi_xabarlari')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    matn = models.TextField()
+    meta = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'ai_yordamchi_xabarlari'
+        ordering = ['created_at']
+        indexes = [models.Index(fields=['oquvchi', '-created_at'], name='ai_oquvchi_created_idx')]
+        verbose_name = 'AI yordamchi xabari'
+        verbose_name_plural = 'AI yordamchi xabarlari'
+
+
+# ==================== MUROJAATLAR ====================
+
+class Murojaat(models.Model):
+    KATEGORIYA_CHOICES = (
+        ('texnik', 'Texnik muammo'),
+        ('dars', "Dars bo'yicha savol"),
+        ('test', "Test yoki natija"),
+        ('sertifikat', 'Sertifikat'),
+        ('hisob', 'Hisob va xavfsizlik'),
+        ('taklif', 'Taklif'),
+        ('boshqa', 'Boshqa'),
+    )
+    STATUS_CHOICES = (
+        ('yangi', 'Yangi'),
+        ('korilmoqda', "Ko'rib chiqilmoqda"),
+        ('javob_berildi', 'Javob berildi'),
+        ('yopildi', 'Yopildi'),
+    )
+    USTUVORLIK_CHOICES = (
+        ('past', 'Past'),
+        ('oddiy', 'Oddiy'),
+        ('yuqori', 'Yuqori'),
+        ('shoshilinch', 'Shoshilinch'),
+    )
+
+    kod = models.CharField(max_length=16, unique=True, db_index=True, editable=False)
+    foydalanuvchi = models.ForeignKey(User, on_delete=models.CASCADE, related_name='murojaatlar')
+    kategoriya = models.CharField(max_length=30, choices=KATEGORIYA_CHOICES, default='boshqa')
+    sarlavha = models.CharField(max_length=200)
+    matn = models.TextField()
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='yangi')
+    ustuvorlik = models.CharField(max_length=20, choices=USTUVORLIK_CHOICES, default='oddiy')
+    oxirgi_javob_adminniki = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'murojaatlar'
+        ordering = ['-updated_at']
+        indexes = [models.Index(fields=['status', '-updated_at'], name='murojaat_status_idx')]
+        verbose_name = 'Murojaat'
+        verbose_name_plural = 'Murojaatlar'
+
+    def save(self, *args, **kwargs):
+        if not self.kod:
+            self.kod = f"MR-{uuid.uuid4().hex[:10].upper()}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.kod} - {self.sarlavha}"
+
+
+class MurojaatJavob(models.Model):
+    murojaat = models.ForeignKey(Murojaat, on_delete=models.CASCADE, related_name='javoblar')
+    muallif = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='murojaat_javoblari')
+    matn = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'murojaat_javoblari'
+        ordering = ['created_at']
+        verbose_name = 'Murojaat javobi'
+        verbose_name_plural = 'Murojaat javoblari'
+
+
+# ==================== PLATFORMA SOZLAMALARI ====================
+
+class PlatformSozlama(models.Model):
+    platform_nomi = models.CharField(max_length=150, default='Al-Aziz Academy')
+    platform_qisqa_nomi = models.CharField(max_length=40, default='AL-AZIZ')
+    logo_url = models.URLField(blank=True)
+    ai_yordamchi_faol = models.BooleanField(default=True)
+    ai_kunlik_limit = models.PositiveIntegerField(default=30)
+    murojaatlar_faol = models.BooleanField(default=True)
+    texnik_rejim = models.BooleanField(default=False)
+    texnik_xabar = models.CharField(max_length=255, blank=True, default="Platformada texnik ishlar olib borilmoqda.")
+    max_fayl_mb = models.PositiveIntegerField(default=10)
+    standart_test_foizi = models.PositiveIntegerField(default=80)
+    mashq_coin = models.PositiveIntegerField(default=5)
+    final_test_coin = models.PositiveIntegerField(default=50)
+    xavfsizlik_eslatmasi = models.CharField(
+        max_length=255,
+        default="Parolingizni hech kimga bermang va umumiy qurilmalarda hisobdan chiqishni unutmang.",
+    )
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'platform_sozlamalari'
+        verbose_name = 'Platforma sozlamasi'
+        verbose_name_plural = 'Platforma sozlamalari'
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj

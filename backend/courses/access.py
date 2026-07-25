@@ -88,7 +88,7 @@ def mavzu_testdan_otilganmi(oquvchi, mavzu: Mavzu) -> bool:
         passed = MashqNatija.objects.filter(
             oquvchi=oquvchi,
             mashq=mashq,
-            foiz__gte=MAVZU_OTISH_FOIZI,
+            foiz__gte=int(mashq.otish_bali_foiz or MAVZU_OTISH_FOIZI),
         ).exists()
         if not passed:
             return False
@@ -151,7 +151,7 @@ def mavzu_holati(oquvchi, mavzu: Mavzu) -> dict:
         'ochiq': ochiq,
         'otilgan': mavzu_testdan_otilganmi(oquvchi, mavzu),
         'eng_yaxshi_foiz': eng_yaxshi_foiz,
-        'otish_foizi': MAVZU_OTISH_FOIZI,
+        'otish_foizi': max([int(m.otish_bali_foiz or MAVZU_OTISH_FOIZI) for m in mashqlar], default=MAVZU_OTISH_FOIZI),
         'qulf_sababi': '' if ochiq else "Avval oldingi mavzu testidan kamida 80% oling.",
     }
 

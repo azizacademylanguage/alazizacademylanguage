@@ -2,6 +2,7 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 from . import views
 from . import views_extra
+from .admin_progress import AdminOquvchiProgressView
 
 router = DefaultRouter()
 router.register('admin/mashqlar', views.MashqViewSet, basename='mashq')
@@ -60,6 +61,23 @@ urlpatterns = [
     path('boshqaruv/shop-buyurtmalar/', views_extra.ShopBuyurtmalarBoshqaruvView.as_view(), name='shop-buyurtmalar-boshqaruv'),
     path('boshqaruv/shop-buyurtmalar/<int:buyurtma_id>/status/', views_extra.ShopBuyurtmaStatusView.as_view(), name='shop-buyurtma-status'),
     path('admin/oquvchilar/<int:oquvchi_id>/coin-berish/', views_extra.AdminCoinBerishView.as_view(), name='admin-coin-berish'),
+
+    # ---- AI yordamchi ----
+    path('oquvchi/ai-yordamchi/', views_extra.AIYordamchiView.as_view(), name='ai-yordamchi'),
+
+    # ---- Murojaatlar ----
+    path('oquvchi/murojaatlar/', views_extra.MeningMurojaatlarimView.as_view(), name='mening-murojaatlarim'),
+    path('oquvchi/murojaatlar/<int:murojaat_id>/', views_extra.MeningMurojaatimDetailView.as_view(), name='mening-murojaatim-detail'),
+    path('admin/murojaatlar/', views_extra.AdminMurojaatlarView.as_view(), name='admin-murojaatlar'),
+    path('admin/murojaatlar/<int:murojaat_id>/', views_extra.AdminMurojaatDetailView.as_view(), name='admin-murojaat-detail'),
+
+    # ---- Kuchli analitika ----
+    path('admin/kuchli-analitika/', views_extra.KuchliAnalitikaView.as_view(), name='kuchli-analitika'),
+    path('admin/oquvchilar/<int:oquvchi_id>/progress/', AdminOquvchiProgressView.as_view(), name='admin-oquvchi-progress'),
+
+    # ---- Platforma sozlamalari ----
+    path('platform-holati/', views_extra.PlatformHolatiView.as_view(), name='platform-holati'),
+    path('admin/platform-sozlamalari/', views_extra.PlatformSozlamaView.as_view(), name='platform-sozlamalari'),
 
     # ---- Admin audit log ----
     path('admin/amal-loglari/', views_extra.AdminAmalLoglariView.as_view(), name='admin-amal-loglari'),

@@ -1,10 +1,17 @@
 import { NavLink, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { GraduationCap, LogOut } from 'lucide-react';
+import { GraduationCap, LogOut, Wrench } from 'lucide-react';
+import { getPlatformHolati } from '../api/platform';
 
 export default function DashboardLayout({ navItems, children, extraSidebarContent }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [platforma, setPlatforma] = useState(null);
+
+  useEffect(() => {
+    getPlatformHolati().then(setPlatforma).catch(() => {});
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -18,12 +25,12 @@ export default function DashboardLayout({ navItems, children, extraSidebarConten
       <div>
         <div className="flex items-center gap-2.5 mb-8 px-1">
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden"
             style={{ background: 'linear-gradient(135deg, var(--color-amber) 0%, var(--color-amber-dark) 100%)' }}
           >
-            <GraduationCap size={16} color="white" strokeWidth={2.2} />
+            {platforma?.logo_url ? <img src={platforma.logo_url} alt="Logo" className="w-full h-full object-cover" /> : <GraduationCap size={16} color="white" strokeWidth={2.2} />}
           </div>
-          <span className="font-display text-white font-bold text-[15px] tracking-tight">Bilim Yo'li</span>
+          <span className="font-display text-white font-bold text-[15px] tracking-tight truncate">{platforma?.platform_qisqa_nomi || "Bilim Yo'li"}</span>
         </div>
 
         <nav className="space-y-1">
@@ -90,10 +97,10 @@ export default function DashboardLayout({ navItems, children, extraSidebarConten
       <header className="mobile-topbar lg:hidden">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="mobile-topbar__logo">
-            <GraduationCap size={15} color="white" strokeWidth={2.3} />
+            {platforma?.logo_url ? <img src={platforma.logo_url} alt="Logo" className="w-full h-full object-cover" /> : <GraduationCap size={15} color="white" strokeWidth={2.3} />}
           </div>
           <div className="min-w-0">
-            <p className="font-display text-white font-extrabold text-sm leading-tight truncate">Bilim Yo'li</p>
+            <p className="font-display text-white font-extrabold text-sm leading-tight truncate">{platforma?.platform_qisqa_nomi || "Bilim Yo'li"}</p>
             <p className="text-white/55 text-[10px] leading-tight truncate">{roleLabel}</p>
           </div>
         </div>
@@ -138,6 +145,12 @@ export default function DashboardLayout({ navItems, children, extraSidebarConten
       {/* Content */}
       <main className="flex-1 min-w-0 overflow-x-hidden">
         <div className="dashboard-content max-w-6xl mx-auto p-4 pt-20 sm:p-6 sm:pt-24 lg:p-8 lg:pt-8">
+          {platforma?.texnik_rejim && (
+            <div className="mb-5 flex items-start gap-3 p-4 rounded-2xl border" style={{ background: '#FFF7E8', borderColor: '#F2D59B', color: '#80633B' }}>
+              <Wrench size={18} className="flex-shrink-0 mt-0.5" />
+              <div><p className="font-semibold text-sm">Texnik rejim</p><p className="text-xs mt-1">{platforma.texnik_xabar}</p></div>
+            </div>
+          )}
           {children}
         </div>
       </main>

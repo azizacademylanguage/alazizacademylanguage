@@ -1,0 +1,57 @@
+AL-AZIZ LANGUAGE PLATFORM — TANLANGAN YANGILANISHLAR
+=====================================================
+
+Ushbu paketga faqat quyidagi bo'limlar qo'shildi:
+
+11. AI YORDAMCHI
+- O'quvchi panelida alohida AI yordamchi sahifasi.
+- O'quvchining fanlari, darajalari va test natijalariga qarab shaxsiy tavsiyalar.
+- Suhbat tarixi va kunlik savol limiti.
+- ANTHROPIC_API_KEY kiritilsa to'liq AI javobi ishlaydi.
+- Kalit bo'lmasa loyiha to'xtamaydi: ichki shaxsiy tavsiya rejimi ishlaydi.
+
+13. KUCHLI ANALITIKA
+- Umumiy o'quvchi, faollik, o'rtacha natija, urinish va sertifikat statistikasi.
+- Qiyin mavzular va eng ko'p xato qilingan savollar.
+- Oxirgi kunlardagi faollik grafigi.
+- Xavf guruhidagi o'quvchilar: past natija, uzoq vaqt kirmagan yoki faoliyati sust foydalanuvchilar.
+- Filial bo'yicha filtr va natijalar.
+
+14. MUROJAATLAR MARKAZI
+- O'quvchi texnik, dars, test, sertifikat, hisob yoki boshqa murojaat yuboradi.
+- Har bir murojaatga avtomatik kod beriladi.
+- Admin status, ustuvorlik va javoblarni boshqaradi.
+- O'quvchi va admin o'rtasidagi yozishmalar tarixi saqlanadi.
+
+15. SOZLAMALAR VA XAVFSIZLIK
+- Platforma nomi, qisqa nomi va logo URL manzili.
+- AI, murojaatlar va texnik rejimni yoqish/o'chirish.
+- Testdan o'tish foizi, coin mukofotlari va fayl hajmi cheklovi.
+- Parolni almashtirish.
+- Barcha qurilmalardagi sessiyalarni bekor qilish.
+- Kirish urinishlari va xavfsizlik jurnali.
+- Admin foydalanuvchining barcha sessiyalarini bekor qila oladi.
+
+QO'SHILMAGAN BO'LIMLAR
+- Guruhlar bo'limi qo'shilmadi.
+- Ustoz paneli qo'shilmadi.
+- Davomat qo'shilmadi.
+
+ISHGA TUSHIRISH
+1. Backend papkasida kutubxonalarni o'rnating:
+   pip install -r requirements.txt
+
+2. Migratsiyalarni bajaring:
+   python manage.py migrate
+
+3. Frontend papkasida:
+   npm install
+   npm run build
+
+Railway deploy skripti migrate buyrug'ini avtomatik bajarsa, yangi jadvallar o'zi yaratiladi.
+
+AI UCHUN ENV
+ANTHROPIC_API_KEY=...
+ANTHROPIC_MODEL=claude-sonnet-4-6
+
+Kalit bo'lmasa ham AI yordamchi ichki tavsiya rejimida ishlaydi.

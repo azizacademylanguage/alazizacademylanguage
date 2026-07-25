@@ -20,6 +20,13 @@ class MashqViewSet(viewsets.ModelViewSet):
     serializer_class = MashqSerializer
     permission_classes = [IsAdmin]
 
+    def perform_create(self, serializer):
+        if 'otish_bali_foiz' not in self.request.data:
+            from .models import PlatformSozlama
+            serializer.save(otish_bali_foiz=PlatformSozlama.load().standart_test_foizi)
+        else:
+            serializer.save()
+
 
 class SavolViewSet(viewsets.ModelViewSet):
     from .serializers import SavolSerializer
@@ -141,13 +148,15 @@ class MashqTopshirishView(APIView):
         natija.tugagan_vaqt = timezone.now()
         natija.save()
 
-        if foiz >= MAVZU_OTISH_FOIZI:
+        otish_foizi = int(mashq.otish_bali_foiz or MAVZU_OTISH_FOIZI)
+        if foiz >= otish_foizi:
             from .coins import coin_qoshish
-            coin_qoshish(request.user, 5, 'mashq', f"{mashq.sarlavha} mashqi {foiz}% bilan tugatildi")
+            from .models import PlatformSozlama
+            coin_qoshish(request.user, PlatformSozlama.load().mashq_coin, 'mashq', f"{mashq.sarlavha} mashqi {foiz}% bilan tugatildi")
 
         data = MashqNatijaSerializer(natija).data
-        data['otdi'] = foiz >= MAVZU_OTISH_FOIZI
-        data['otish_foizi'] = MAVZU_OTISH_FOIZI
+        data['otdi'] = foiz >= otish_foizi
+        data['otish_foizi'] = otish_foizi
         data['daraja_id'] = mashq.dars.mavzu.daraja_id
         navbatdagi = keyingi_mavzu(mashq.dars.mavzu)
         data['keyingi_mavzu_id'] = navbatdagi.id if navbatdagi else None
@@ -155,7 +164,7 @@ class MashqTopshirishView(APIView):
         data['xabar'] = (
             "Tabriklaymiz! Keyingi mavzu ochildi."
             if data['keyingi_mavzu_ochildi']
-            else ("Testdan o'tdingiz." if data['otdi'] else "Keyingi mavzu ochilishi uchun kamida 80% oling.")
+            else ("Testdan o'tdingiz." if data['otdi'] else f"Keyingi mavzu ochilishi uchun kamida {otish_foizi}% oling.")
         )
         return Response(data, status=status.HTTP_201_CREATED)
 

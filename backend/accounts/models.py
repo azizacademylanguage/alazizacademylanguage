@@ -32,6 +32,7 @@ class User(AbstractUser):
     familya = models.CharField(max_length=100, blank=True)
     faol = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    token_version = models.PositiveIntegerField(default=1)
 
     class Meta:
         db_table = 'users'
@@ -53,3 +54,27 @@ class User(AbstractUser):
         if self.is_superuser:
             self.role = self.ROLE_ADMIN
         super().save(*args, **kwargs)
+
+
+class KirishTarixi(models.Model):
+    """Login urinishlari va qurilma xavfsizlik tarixi."""
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='kirish_tarixi')
+    username = models.CharField(max_length=150, blank=True)
+    muvaffaqiyatli = models.BooleanField(default=False)
+    ip_manzil = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'kirish_tarixi'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['-created_at'], name='kirish_created_idx'),
+            models.Index(fields=['username', '-created_at'], name='kirish_user_created_idx'),
+        ]
+        verbose_name = 'Kirish tarixi'
+        verbose_name_plural = 'Kirish tarixi'
+
+    def __str__(self):
+        holat = 'Muvaffaqiyatli' if self.muvaffaqiyatli else 'Xato'
+        return f"{self.username} - {holat}"

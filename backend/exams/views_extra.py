@@ -294,7 +294,8 @@ class FinalTestTopshirishView(APIView):
                 sertifikat.save(update_fields=['foiz'])
             natija.sertifikat = sertifikat
             natija.save(update_fields=['sertifikat'])
-            coin_qoshish(request.user, 50, 'final_test', f"{daraja} yakuniy testidan o'tildi")
+            from .models import PlatformSozlama
+            coin_qoshish(request.user, PlatformSozlama.load().final_test_coin, 'final_test', f"{daraja} yakuniy testidan o'tildi")
             log_amal(
                 request.user,
                 'daraja_tugatildi',
@@ -432,7 +433,8 @@ class WritingTopshirishView(APIView):
             natija.baholanmoqda = False
             natija.save()
             if natija.ai_foiz and natija.ai_foiz >= 60:
-                coin_qoshish(request.user, 10, 'mashq', 'Writing topshiriq muvaffaqiyatli bajarildi')
+                from .models import PlatformSozlama
+                coin_qoshish(request.user, PlatformSozlama.load().mashq_coin, 'mashq', 'Writing topshiriq muvaffaqiyatli bajarildi')
         except Exception as e:
             natija.ai_izoh = f"AI baholashda xatolik yuz berdi: {str(e)}"
             natija.baholanmoqda = False
@@ -466,6 +468,13 @@ class SpeakingTopshirishView(APIView):
         audio_fayl = request.FILES.get('audio_yozuv')
         if not audio_fayl:
             return Response({'detail': "Audio fayl yuborilishi shart."}, status=status.HTTP_400_BAD_REQUEST)
+        from .models import PlatformSozlama
+        max_mb = PlatformSozlama.load().max_fayl_mb
+        if audio_fayl.size > max_mb * 1024 * 1024:
+            return Response(
+                {'detail': f"Audio fayl {max_mb} MB dan oshmasligi kerak."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         natija = SpeakingNatija.objects.create(
             oquvchi=request.user, topshiriq=topshiriq, audio_yozuv=audio_fayl, baholanmoqda=True,
@@ -807,3 +816,400 @@ class AdminAmalLoglariView(APIView):
     def get(self, request):
         loglar = AdminAmalLog.objects.all()[:100]
         return Response(AdminAmalLogSerializer(loglar, many=True).data)
+
+# ==================== AI YORDAMCHI ====================
+
+def _oquvchi_ai_konteksti(oquvchi):
+    from django.db.models import Avg, Count
+    from .models import MashqNatija
+
+    assignment = OquvchiFan.objects.select_related('daraja__fan').filter(oquvchi=oquvchi).order_by('created_at').first()
+    natijalar = MashqNatija.objects.filter(oquvchi=oquvchi).select_related(
+        'mashq__dars__mavzu__daraja__fan'
+    ).order_by('-boshlangan_vaqt')
+    ortacha = natijalar.aggregate(v=Avg('foiz'))['v'] or 0
+    zaif_qs = natijalar.values('mashq__dars__mavzu__nomi').annotate(
+        foiz=Avg('foiz'), urinishlar=Count('id')
+    ).order_by('foiz')[:5]
+    zaif = [
+        {'mavzu': x['mashq__dars__mavzu__nomi'] or 'Noma’lum', 'foiz': float(x['foiz'] or 0), 'urinishlar': x['urinishlar']}
+        for x in zaif_qs
+    ]
+    oxirgi = [
+        {
+            'mavzu': n.mashq.dars.mavzu.nomi,
+            'dars': n.mashq.dars.sarlavha,
+            'foiz': float(n.foiz),
+            'sana': n.boshlangan_vaqt.isoformat(),
+        }
+        for n in natijalar[:5]
+    ]
+    return {
+        'ism': oquvchi.full_name,
+        'fan': assignment.daraja.fan.nomi if assignment else '',
+        'daraja': assignment.daraja.nomi if assignment else '',
+        'ortacha_foiz': float(ortacha),
+        'jami_urinishlar': natijalar.count(),
+        'zaif_mavzular': zaif,
+        'oxirgi_natijalar': oxirgi,
+    }
+
+
+class AIYordamchiView(APIView):
+    permission_classes = [IsOquvchi]
+
+    def get(self, request):
+        from .models import AIYordamchiXabar, PlatformSozlama
+        from .serializers_extra import AIYordamchiXabarSerializer
+        sozlama = PlatformSozlama.load()
+        xabarlar = AIYordamchiXabar.objects.filter(oquvchi=request.user).order_by('-created_at')[:60]
+        data = list(reversed(AIYordamchiXabarSerializer(xabarlar, many=True).data))
+        return Response({
+            'faol': sozlama.ai_yordamchi_faol,
+            'kunlik_limit': sozlama.ai_kunlik_limit,
+            'xabarlar': data,
+            'kontekst': _oquvchi_ai_konteksti(request.user),
+            'tezkor_savollar': [
+                'Natijamni tahlil qilib ber',
+                'Bugungi o‘quv rejamni tuzib ber',
+                'Qaysi mavzularni ko‘proq takrorlashim kerak?',
+                'Testdagi xatolarimni qanday kamaytiraman?',
+            ],
+        })
+
+    def post(self, request):
+        from .models import AIYordamchiXabar, PlatformSozlama
+        from .serializers_extra import AIYordamchiXabarSerializer
+        from .ai_baholash import ai_yordamchi_javob
+
+        sozlama = PlatformSozlama.load()
+        if not sozlama.ai_yordamchi_faol:
+            return Response({'detail': 'AI yordamchi admin tomonidan vaqtincha o‘chirilgan.'}, status=status.HTTP_403_FORBIDDEN)
+        savol = str(request.data.get('savol', '')).strip()
+        if len(savol) < 2:
+            return Response({'detail': 'Savolingizni yozing.'}, status=status.HTTP_400_BAD_REQUEST)
+        if len(savol) > 2000:
+            return Response({'detail': 'Savol 2000 belgidan oshmasin.'}, status=status.HTTP_400_BAD_REQUEST)
+        bugungi = AIYordamchiXabar.objects.filter(
+            oquvchi=request.user, role=AIYordamchiXabar.ROLE_USER, created_at__date=timezone.localdate()
+        ).count()
+        if bugungi >= sozlama.ai_kunlik_limit:
+            return Response({'detail': f'Bugungi {sozlama.ai_kunlik_limit} ta savol limiti tugadi.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+        AIYordamchiXabar.objects.create(oquvchi=request.user, role='user', matn=savol)
+        tarix = list(AIYordamchiXabar.objects.filter(oquvchi=request.user).order_by('-created_at').values('role', 'matn')[:10])
+        tarix.reverse()
+        kontekst = _oquvchi_ai_konteksti(request.user)
+        javob, manba = ai_yordamchi_javob(savol, kontekst, tarix)
+        ai_xabar = AIYordamchiXabar.objects.create(
+            oquvchi=request.user,
+            role='assistant',
+            matn=javob,
+            meta={'manba': manba, 'kontekst_ortacha': kontekst.get('ortacha_foiz', 0)},
+        )
+        return Response({
+            'xabar': AIYordamchiXabarSerializer(ai_xabar).data,
+            'qolgan_limit': max(0, sozlama.ai_kunlik_limit - bugungi - 1),
+        }, status=status.HTTP_201_CREATED)
+
+    def delete(self, request):
+        from .models import AIYordamchiXabar
+        AIYordamchiXabar.objects.filter(oquvchi=request.user).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ==================== MUROJAATLAR ====================
+
+class MeningMurojaatlarimView(APIView):
+    permission_classes = [IsOquvchi]
+
+    def get(self, request):
+        from .models import Murojaat
+        from .serializers_extra import MurojaatSerializer
+        qs = Murojaat.objects.filter(foydalanuvchi=request.user).prefetch_related('javoblar__muallif')
+        return Response(MurojaatSerializer(qs, many=True).data)
+
+    def post(self, request):
+        from .models import Murojaat, PlatformSozlama
+        from .serializers_extra import MurojaatSerializer
+        if not PlatformSozlama.load().murojaatlar_faol:
+            return Response({'detail': 'Murojaatlar bo‘limi vaqtincha yopilgan.'}, status=status.HTTP_403_FORBIDDEN)
+        serializer = MurojaatSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        murojaat = Murojaat.objects.create(
+            foydalanuvchi=request.user,
+            kategoriya=serializer.validated_data.get('kategoriya', 'boshqa'),
+            sarlavha=serializer.validated_data['sarlavha'],
+            matn=serializer.validated_data['matn'],
+        )
+        return Response(MurojaatSerializer(murojaat).data, status=status.HTTP_201_CREATED)
+
+
+class MeningMurojaatimDetailView(APIView):
+    permission_classes = [IsOquvchi]
+
+    def _get(self, request, murojaat_id):
+        from .models import Murojaat
+        try:
+            return Murojaat.objects.prefetch_related('javoblar__muallif').get(id=murojaat_id, foydalanuvchi=request.user)
+        except Murojaat.DoesNotExist:
+            return None
+
+    def get(self, request, murojaat_id):
+        from .serializers_extra import MurojaatSerializer
+        obj = self._get(request, murojaat_id)
+        if not obj:
+            return Response({'detail': 'Murojaat topilmadi.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(MurojaatSerializer(obj).data)
+
+    def post(self, request, murojaat_id):
+        from .models import MurojaatJavob
+        from .serializers_extra import MurojaatSerializer
+        obj = self._get(request, murojaat_id)
+        if not obj:
+            return Response({'detail': 'Murojaat topilmadi.'}, status=status.HTTP_404_NOT_FOUND)
+        if obj.status == 'yopildi':
+            return Response({'detail': 'Yopilgan murojaatga javob yozib bo‘lmaydi.'}, status=status.HTTP_400_BAD_REQUEST)
+        matn = str(request.data.get('matn', '')).strip()
+        if not matn:
+            return Response({'detail': 'Javob matnini yozing.'}, status=status.HTTP_400_BAD_REQUEST)
+        MurojaatJavob.objects.create(murojaat=obj, muallif=request.user, matn=matn)
+        obj.status = 'korilmoqda'
+        obj.oxirgi_javob_adminniki = False
+        obj.save(update_fields=['status', 'oxirgi_javob_adminniki', 'updated_at'])
+        return Response(MurojaatSerializer(obj).data)
+
+
+class AdminMurojaatlarView(APIView):
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        from .models import Murojaat
+        from .serializers_extra import MurojaatSerializer
+        qs = Murojaat.objects.select_related('foydalanuvchi__filial').prefetch_related('javoblar__muallif')
+        status_filter = request.query_params.get('status', '').strip()
+        kategoriya = request.query_params.get('kategoriya', '').strip()
+        q = request.query_params.get('q', '').strip()
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        if kategoriya:
+            qs = qs.filter(kategoriya=kategoriya)
+        if q:
+            qs = qs.filter(Q(kod__icontains=q) | Q(sarlavha__icontains=q) | Q(foydalanuvchi__username__icontains=q) | Q(foydalanuvchi__ism__icontains=q))
+        return Response(MurojaatSerializer(qs[:300], many=True).data)
+
+
+class AdminMurojaatDetailView(APIView):
+    permission_classes = [IsAdmin]
+
+    def _get(self, murojaat_id):
+        from .models import Murojaat
+        try:
+            return Murojaat.objects.select_related('foydalanuvchi__filial').prefetch_related('javoblar__muallif').get(id=murojaat_id)
+        except Murojaat.DoesNotExist:
+            return None
+
+    def get(self, request, murojaat_id):
+        from .serializers_extra import MurojaatSerializer
+        obj = self._get(murojaat_id)
+        if not obj:
+            return Response({'detail': 'Murojaat topilmadi.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(MurojaatSerializer(obj).data)
+
+    def patch(self, request, murojaat_id):
+        from .models import Murojaat
+        from .serializers_extra import MurojaatSerializer
+        obj = self._get(murojaat_id)
+        if not obj:
+            return Response({'detail': 'Murojaat topilmadi.'}, status=status.HTTP_404_NOT_FOUND)
+        yangi_status = request.data.get('status', obj.status)
+        ustuvorlik = request.data.get('ustuvorlik', obj.ustuvorlik)
+        if yangi_status not in dict(Murojaat.STATUS_CHOICES):
+            return Response({'detail': 'Noto‘g‘ri status.'}, status=status.HTTP_400_BAD_REQUEST)
+        if ustuvorlik not in dict(Murojaat.USTUVORLIK_CHOICES):
+            return Response({'detail': 'Noto‘g‘ri ustuvorlik.'}, status=status.HTTP_400_BAD_REQUEST)
+        obj.status = yangi_status
+        obj.ustuvorlik = ustuvorlik
+        obj.closed_at = timezone.now() if yangi_status == 'yopildi' else None
+        obj.save(update_fields=['status', 'ustuvorlik', 'closed_at', 'updated_at'])
+        log_amal(request.user, 'murojaat_holati', f'{obj.kod}: {obj.get_status_display()}', nishon_user=obj.foydalanuvchi)
+        return Response(MurojaatSerializer(obj).data)
+
+    def post(self, request, murojaat_id):
+        from .models import MurojaatJavob
+        from .serializers_extra import MurojaatSerializer
+        obj = self._get(murojaat_id)
+        if not obj:
+            return Response({'detail': 'Murojaat topilmadi.'}, status=status.HTTP_404_NOT_FOUND)
+        matn = str(request.data.get('matn', '')).strip()
+        if not matn:
+            return Response({'detail': 'Javob matnini yozing.'}, status=status.HTTP_400_BAD_REQUEST)
+        MurojaatJavob.objects.create(murojaat=obj, muallif=request.user, matn=matn)
+        obj.status = 'javob_berildi'
+        obj.oxirgi_javob_adminniki = True
+        obj.closed_at = None
+        obj.save(update_fields=['status', 'oxirgi_javob_adminniki', 'closed_at', 'updated_at'])
+        log_amal(request.user, 'murojaatga_javob', f'{obj.kod} murojaatiga javob berildi', nishon_user=obj.foydalanuvchi)
+        return Response(MurojaatSerializer(obj).data)
+
+
+# ==================== KUCHLI ANALITIKA ====================
+
+class KuchliAnalitikaView(APIView):
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        from datetime import timedelta
+        from django.contrib.auth import get_user_model
+        from django.db.models import Avg, Count, Max
+        from django.db.models.functions import TruncDate
+        from accounts.models import Filial, KirishTarixi
+        from .models import (
+            MashqNatija, OquvchiJavob, WritingNatija, SpeakingNatija,
+            Sertifikat, Murojaat,
+        )
+        User = get_user_model()
+        try:
+            kunlar = max(7, min(365, int(request.query_params.get('kunlar', 30))))
+        except ValueError:
+            kunlar = 30
+        since = timezone.now() - timedelta(days=kunlar)
+        oquvchilar = User.objects.filter(role=User.ROLE_OQUVCHI)
+        filial_id = request.query_params.get('filial')
+        if filial_id:
+            oquvchilar = oquvchilar.filter(filial_id=filial_id)
+        ids = list(oquvchilar.values_list('id', flat=True))
+        natijalar = MashqNatija.objects.filter(oquvchi_id__in=ids, boshlangan_vaqt__gte=since)
+        avg = natijalar.aggregate(v=Avg('foiz'))['v'] or 0
+
+        qiyin_mavzular = list(
+            natijalar.values('mashq__dars__mavzu__nomi', 'mashq__dars__mavzu__daraja__fan__nomi')
+            .annotate(ortacha=Avg('foiz'), urinishlar=Count('id'))
+            .filter(urinishlar__gte=1)
+            .order_by('ortacha')[:10]
+        )
+        qiyin_savollar = list(
+            OquvchiJavob.objects.filter(natija__oquvchi_id__in=ids, natija__boshlangan_vaqt__gte=since, togri_berilgan=False)
+            .values('savol__matn', 'savol__mashq__dars__sarlavha')
+            .annotate(xatolar=Count('id'))
+            .order_by('-xatolar')[:10]
+        )
+        kunlik = list(
+            natijalar.annotate(sana=TruncDate('boshlangan_vaqt')).values('sana')
+            .annotate(urinishlar=Count('id'), ortacha=Avg('foiz'))
+            .order_by('sana')
+        )
+
+        latest_results = {
+            x['oquvchi_id']: x for x in MashqNatija.objects.filter(oquvchi_id__in=ids)
+            .values('oquvchi_id').annotate(last=Max('boshlangan_vaqt'), avg=Avg('foiz'), attempts=Count('id'))
+        }
+        latest_logins = {
+            x['user_id']: x['last'] for x in KirishTarixi.objects.filter(user_id__in=ids, muvaffaqiyatli=True)
+            .values('user_id').annotate(last=Max('created_at'))
+        }
+        risk = []
+        seven_days = timezone.now() - timedelta(days=7)
+        last_activity_map = {}
+        for uid in ids:
+            r = latest_results.get(uid, {})
+            candidates = [d for d in [r.get('last'), latest_logins.get(uid)] if d]
+            last_activity_map[uid] = max(candidates) if candidates else None
+        faol_7_kun = sum(1 for value in last_activity_map.values() if value and value >= seven_days)
+
+        for user in oquvchilar.select_related('filial')[:1000]:
+            r = latest_results.get(user.id, {})
+            last_activity = last_activity_map.get(user.id)
+            reasons = []
+            if not last_activity or last_activity < seven_days:
+                reasons.append('7 kundan beri faol emas')
+            if r and float(r.get('avg') or 0) < 60:
+                reasons.append('o‘rtacha natija 60% dan past')
+            if int(r.get('attempts') or 0) >= 5 and float(r.get('avg') or 0) < 70:
+                reasons.append('ko‘p urinish, natija past')
+            if reasons:
+                risk.append({
+                    'id': user.id,
+                    'full_name': user.full_name,
+                    'username': user.username,
+                    'filial': user.filial.nomi if user.filial else '',
+                    'ortacha': round(float(r.get('avg') or 0), 2),
+                    'urinishlar': int(r.get('attempts') or 0),
+                    'oxirgi_faollik': last_activity,
+                    'sabablar': reasons,
+                    'xavf_darajasi': 'yuqori' if len(reasons) >= 2 else 'orta',
+                })
+        risk.sort(key=lambda x: (0 if x['xavf_darajasi'] == 'yuqori' else 1, x['ortacha']))
+
+        filiallar = []
+        filial_qs = Filial.objects.all().order_by('nomi')
+        if filial_id:
+            filial_qs = filial_qs.filter(id=filial_id)
+        for f in filial_qs:
+            fids = list(oquvchilar.filter(filial=f).values_list('id', flat=True))
+            fqs = MashqNatija.objects.filter(oquvchi_id__in=fids, boshlangan_vaqt__gte=since)
+            filiallar.append({
+                'id': f.id,
+                'nomi': f.nomi,
+                'oquvchilar': len(fids),
+                'urinishlar': fqs.count(),
+                'ortacha': round(float(fqs.aggregate(v=Avg('foiz'))['v'] or 0), 2),
+                'sertifikatlar': Sertifikat.objects.filter(oquvchi_id__in=fids, berilgan_sana__gte=since).count(),
+            })
+
+        return Response({
+            'davr_kunlari': kunlar,
+            'umumiy': {
+                'oquvchilar': len(ids),
+                'faol_7_kun': faol_7_kun,
+                'urinishlar': natijalar.count(),
+                'ortacha_foiz': round(float(avg), 2),
+                'sertifikatlar': Sertifikat.objects.filter(oquvchi_id__in=ids, berilgan_sana__gte=since).count(),
+                'writing_ortacha': round(float(WritingNatija.objects.filter(oquvchi_id__in=ids, created_at__gte=since).aggregate(v=Avg('ai_foiz'))['v'] or 0), 2),
+                'speaking_ortacha': round(float(SpeakingNatija.objects.filter(oquvchi_id__in=ids, created_at__gte=since).aggregate(v=Avg('ai_foiz'))['v'] or 0), 2),
+                'ochiq_murojaatlar': Murojaat.objects.filter(foydalanuvchi_id__in=ids).exclude(status='yopildi').count(),
+                'xavf_guruhi': len(risk),
+            },
+            'qiyin_mavzular': [
+                {'mavzu': x['mashq__dars__mavzu__nomi'], 'fan': x['mashq__dars__mavzu__daraja__fan__nomi'], 'ortacha': round(float(x['ortacha'] or 0), 2), 'urinishlar': x['urinishlar']}
+                for x in qiyin_mavzular
+            ],
+            'kop_xato_savollar': [
+                {'savol': x['savol__matn'], 'dars': x['savol__mashq__dars__sarlavha'], 'xatolar': x['xatolar']}
+                for x in qiyin_savollar
+            ],
+            'kunlik_faollik': [
+                {'sana': x['sana'], 'urinishlar': x['urinishlar'], 'ortacha': round(float(x['ortacha'] or 0), 2)}
+                for x in kunlik
+            ],
+            'xavf_guruhi': risk[:100],
+            'filiallar': filiallar,
+        })
+
+
+# ==================== PLATFORMA SOZLAMALARI ====================
+
+class PlatformSozlamaView(APIView):
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        from .models import PlatformSozlama
+        from .serializers_extra import PlatformSozlamaSerializer
+        return Response(PlatformSozlamaSerializer(PlatformSozlama.load()).data)
+
+    def patch(self, request):
+        from .models import PlatformSozlama
+        from .serializers_extra import PlatformSozlamaSerializer
+        obj = PlatformSozlama.load()
+        serializer = PlatformSozlamaSerializer(obj, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(updated_by=request.user)
+        log_amal(request.user, 'platform_sozlamasi', 'Platforma sozlamalari yangilandi')
+        return Response(serializer.data)
+
+
+class PlatformHolatiView(APIView):
+    def get(self, request):
+        from .models import PlatformSozlama
+        from .serializers_extra import PlatformSozlamaSerializer
+        return Response(PlatformSozlamaSerializer(PlatformSozlama.load()).data)

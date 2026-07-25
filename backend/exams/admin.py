@@ -5,6 +5,7 @@ from .models import (
     FinalTest, FinalTestSavol, FinalTestJavob, FinalTestNatija, Sertifikat,
     WritingTopshiriq, WritingNatija, SpeakingTopshiriq, SpeakingNatija,
     OquvchiCoin, CoinTarix, ShopMahsulot, ShopBuyurtma, SozJuftligi, SozOyiniSessiya, AdminAmalLog,
+    AIYordamchiXabar, Murojaat, MurojaatJavob, PlatformSozlama,
 )
 
 
@@ -155,3 +156,31 @@ class AdminAmalLogAdmin(admin.ModelAdmin):
     list_display = ['id', 'foydalanuvchi', 'amal', 'nishon_user', 'created_at']
     list_filter = ['amal']
     readonly_fields = ['created_at']
+
+
+# ==================== AI / MUROJAAT / SOZLAMALAR ====================
+
+@admin.register(AIYordamchiXabar)
+class AIYordamchiXabarAdmin(admin.ModelAdmin):
+    list_display = ['id', 'oquvchi', 'role', 'created_at']
+    list_filter = ['role']
+    search_fields = ['oquvchi__username', 'matn']
+
+
+class MurojaatJavobInline(admin.TabularInline):
+    model = MurojaatJavob
+    extra = 0
+    readonly_fields = ['created_at']
+
+
+@admin.register(Murojaat)
+class MurojaatAdmin(admin.ModelAdmin):
+    list_display = ['kod', 'foydalanuvchi', 'kategoriya', 'status', 'ustuvorlik', 'updated_at']
+    list_filter = ['status', 'kategoriya', 'ustuvorlik']
+    search_fields = ['kod', 'sarlavha', 'foydalanuvchi__username']
+    inlines = [MurojaatJavobInline]
+
+
+@admin.register(PlatformSozlama)
+class PlatformSozlamaAdmin(admin.ModelAdmin):
+    list_display = ['platform_nomi', 'ai_yordamchi_faol', 'murojaatlar_faol', 'texnik_rejim', 'updated_at']

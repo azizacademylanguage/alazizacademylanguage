@@ -261,3 +261,74 @@ class AdminAmalLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = AdminAmalLog
         fields = ['id', 'foydalanuvchi', 'foydalanuvchi_ism', 'amal', 'tavsif', 'nishon_user', 'nishon_ism', 'created_at']
+
+# ==================== AI YORDAMCHI / MUROJAAT / SOZLAMA ====================
+
+from .models import AIYordamchiXabar, Murojaat, MurojaatJavob, PlatformSozlama
+
+
+class AIYordamchiXabarSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AIYordamchiXabar
+        fields = ['id', 'role', 'matn', 'meta', 'created_at']
+
+
+class MurojaatJavobSerializer(serializers.ModelSerializer):
+    muallif_ism = serializers.SerializerMethodField()
+    muallif_role = serializers.CharField(source='muallif.role', read_only=True, allow_null=True)
+
+    class Meta:
+        model = MurojaatJavob
+        fields = ['id', 'muallif', 'muallif_ism', 'muallif_role', 'matn', 'created_at']
+        read_only_fields = ['muallif']
+
+    def get_muallif_ism(self, obj):
+        return obj.muallif.full_name if obj.muallif else 'Tizim'
+
+
+class MurojaatSerializer(serializers.ModelSerializer):
+    foydalanuvchi_ism = serializers.CharField(source='foydalanuvchi.full_name', read_only=True)
+    username = serializers.CharField(source='foydalanuvchi.username', read_only=True)
+    filial_nomi = serializers.CharField(source='foydalanuvchi.filial.nomi', read_only=True, allow_null=True)
+    kategoriya_display = serializers.CharField(source='get_kategoriya_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    ustuvorlik_display = serializers.CharField(source='get_ustuvorlik_display', read_only=True)
+    javoblar = MurojaatJavobSerializer(many=True, read_only=True)
+    javoblar_soni = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Murojaat
+        fields = [
+            'id', 'kod', 'foydalanuvchi', 'foydalanuvchi_ism', 'username', 'filial_nomi',
+            'kategoriya', 'kategoriya_display', 'sarlavha', 'matn', 'status', 'status_display',
+            'ustuvorlik', 'ustuvorlik_display', 'oxirgi_javob_adminniki', 'javoblar_soni',
+            'javoblar', 'created_at', 'updated_at', 'closed_at',
+        ]
+        read_only_fields = ['kod', 'foydalanuvchi', 'status', 'ustuvorlik', 'oxirgi_javob_adminniki', 'closed_at']
+
+    def get_javoblar_soni(self, obj):
+        return obj.javoblar.count()
+
+
+class PlatformSozlamaSerializer(serializers.ModelSerializer):
+    updated_by_ism = serializers.CharField(source='updated_by.full_name', read_only=True, allow_null=True)
+
+    class Meta:
+        model = PlatformSozlama
+        fields = [
+            'id', 'platform_nomi', 'platform_qisqa_nomi', 'logo_url', 'ai_yordamchi_faol',
+            'ai_kunlik_limit', 'murojaatlar_faol', 'texnik_rejim', 'texnik_xabar',
+            'max_fayl_mb', 'standart_test_foizi', 'mashq_coin', 'final_test_coin',
+            'xavfsizlik_eslatmasi', 'updated_by', 'updated_by_ism', 'updated_at',
+        ]
+        read_only_fields = ['updated_by', 'updated_at']
+
+    def validate_ai_kunlik_limit(self, value):
+        if value > 500:
+            raise serializers.ValidationError('Kunlik limit 500 tadan oshmasin.')
+        return value
+
+    def validate_standart_test_foizi(self, value):
+        if value < 1 or value > 100:
+            raise serializers.ValidationError("Foiz 1 dan 100 gacha bo'lishi kerak.")
+        return value
