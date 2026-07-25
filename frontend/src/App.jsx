@@ -22,6 +22,12 @@ import AdminSertifikatlarPage from './pages/admin/SertifikatlarPage';
 import KuchliAnalitikaPage from './pages/admin/KuchliAnalitikaPage';
 import AdminMurojaatlarPage from './pages/admin/MurojaatlarPage';
 import SozlamalarPage from './pages/admin/SozlamalarPage';
+import AdminBildirishnomalarPage from './pages/admin/BildirishnomalarPage';
+import AdminTolovlarPage from './pages/admin/TolovlarPage';
+import AdminFaoliyatPage from './pages/admin/FaoliyatPage';
+import AdminTestXavfsizligiPage from './pages/admin/TestXavfsizligiPage';
+import PlacementNatijalarPage from './pages/admin/PlacementNatijalarPage';
+import BackupPage from './pages/admin/BackupPage';
 
 import NazoratchiLayout from './pages/nazoratchi/NazoratchiLayout';
 import NazoratchiDashboard from './pages/nazoratchi/NazoratchiDashboard';
@@ -39,7 +45,12 @@ import GateTestPage from './pages/oquvchi/GateTestPage';
 import FinalTestPage from './pages/oquvchi/FinalTestPage';
 import SertifikatlarimPage from './pages/oquvchi/SertifikatlarimPage';
 import ShopPage from './pages/oquvchi/ShopPage';
-import SozOyiniPage from './pages/oquvchi/SozOyiniPage';
+import TezkorOyiniPage from './pages/oquvchi/TezkorOyiniPage';
+import BildirishnomalarPage from './pages/oquvchi/BildirishnomalarPage';
+import PlacementTestPage from './pages/oquvchi/PlacementTestPage';
+import FaoliyatimPage from './pages/oquvchi/FaoliyatimPage';
+import YutuqlarimPage from './pages/oquvchi/YutuqlarimPage';
+import TolovimPage from './pages/oquvchi/TolovimPage';
 import CertificateVerifyPage from './pages/public/CertificateVerifyPage';
 import ShopBuyurtmalarPage from './pages/shared/ShopBuyurtmalarPage';
 import XavfsizlikPage from './pages/shared/XavfsizlikPage';
@@ -81,6 +92,12 @@ export default function App() {
             <Route path="sertifikatlar" element={<AdminSertifikatlarPage />} />
             <Route path="kuchli-analitika" element={<KuchliAnalitikaPage />} />
             <Route path="murojaatlar" element={<AdminMurojaatlarPage />} />
+            <Route path="bildirishnomalar" element={<AdminBildirishnomalarPage />} />
+            <Route path="tolovlar" element={<AdminTolovlarPage />} />
+            <Route path="faoliyat" element={<AdminFaoliyatPage />} />
+            <Route path="test-xavfsizligi" element={<AdminTestXavfsizligiPage />} />
+            <Route path="placement-natijalari" element={<PlacementNatijalarPage />} />
+            <Route path="backup" element={<BackupPage />} />
             <Route path="sozlamalar" element={<SozlamalarPage />} />
             <Route path="xavfsizlik" element={<XavfsizlikPage />} />
           </Route>
@@ -104,7 +121,12 @@ export default function App() {
             <Route path="gate-test/:darajaId" element={<GateTestPage />} />
             <Route path="final-test/:darajaId" element={<FinalTestPage />} />
             <Route path="sertifikatlarim" element={<SertifikatlarimPage />} />
-            <Route path="soz-oyini" element={<SozOyiniPage />} />
+            <Route path="tezkor-oyin" element={<TezkorOyiniPage />} />
+            <Route path="bildirishnomalar" element={<BildirishnomalarPage />} />
+            <Route path="placement-test" element={<PlacementTestPage />} />
+            <Route path="faoliyatim" element={<FaoliyatimPage />} />
+            <Route path="yutuqlarim" element={<YutuqlarimPage />} />
+            <Route path="tolovim" element={<TolovimPage />} />
             <Route path="shop" element={<ShopPage />} />
             <Route path="ai-yordamchi" element={<AIYordamchiPage />} />
             <Route path="murojaatlar" element={<MurojaatlarimPage />} />

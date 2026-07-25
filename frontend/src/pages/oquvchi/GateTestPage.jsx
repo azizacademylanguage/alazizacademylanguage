@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getGateTest, topshirGateTest } from '../../api/gateTest';
 import { Card, Button, ProgressBar, Skeleton } from '../../components/ui';
-import { ChevronLeft, ChevronRight, Lock, CheckCircle2, XCircle, Coins } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Lock, CheckCircle2, XCircle, Coins, Clock3, ShieldAlert } from 'lucide-react';
+import useTestSecurity from '../../hooks/useTestSecurity';
 
 export default function GateTestPage() {
   const { darajaId } = useParams();
@@ -14,6 +15,7 @@ export default function GateTestPage() {
   const [javoblar, setJavoblar] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [natija, setNatija] = useState(null);
+  const security = useTestSecurity(test?.vaqt_chegarasi_daq || 25);
 
   useEffect(() => {
     getGateTest(darajaId)
@@ -21,6 +23,10 @@ export default function GateTestPage() {
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [darajaId]);
+
+  useEffect(() => {
+    if (security.timeExpired && test && !natija && !submitting) handleSubmit();
+  }, [security.timeExpired]);
 
   if (loading) {
     return (
@@ -64,7 +70,7 @@ export default function GateTestPage() {
         savol: s.id,
         tanlangan_javoblar: javoblar[s.id] || [],
       }));
-      const result = await topshirGateTest(darajaId, payload);
+      const result = await topshirGateTest(darajaId, payload, security.getSecurityData());
       setNatija(result);
     } finally {
       setSubmitting(false);
@@ -91,7 +97,7 @@ export default function GateTestPage() {
         </p>
         {otdi ? (
           <div className="flex items-center justify-center gap-1.5 text-sm font-semibold mb-8 animate-in-fast stagger-2" style={{ color: 'var(--color-amber-dark)' }}>
-            <Coins size={15} /> +20 coin qo'shildi — daraja ochildi!
+            <Coins size={15} /> +{natija.coin_qoshildi || 0} coin qo‘shildi — daraja ochildi!
           </div>
         ) : (
           <p className="text-sm mb-8 animate-in-fast stagger-2" style={{ color: 'var(--color-red)' }}>
@@ -104,7 +110,7 @@ export default function GateTestPage() {
               <Button className="w-full justify-center">Fanlarimga qaytish</Button>
             </Link>
           ) : (
-            <Button onClick={() => { setNatija(null); setJavoblar({}); setCurrentIdx(0); }} className="w-full sm:w-auto justify-center">
+            <Button onClick={() => { setNatija(null); setJavoblar({}); setCurrentIdx(0); security.reset(); }} className="w-full sm:w-auto justify-center">
               Qayta urinish
             </Button>
           )}
@@ -130,8 +136,9 @@ export default function GateTestPage() {
         Bu test — keyingi darajani ochish uchun. Muvaffaqiyatli o'tsangiz, daraja avtomatik ochiladi.
       </p>
 
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-2 gap-3">
         <span className="text-sm font-medium tabular-nums" style={{ color: '#8A8371' }}>{currentIdx + 1} / {jamiSavol}</span>
+        <div className="flex gap-2"><span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold" style={{ background: '#FFF1D8' }}><Clock3 size={14} /> {security.formattedTime}</span><span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs" style={{ background: security.focusLosses ? '#FBEAE8' : '#F1F5F3' }}><ShieldAlert size={14} /> {security.focusLosses}</span></div>
       </div>
       <ProgressBar value={((currentIdx + 1) / jamiSavol) * 100} tone="amber" />
 

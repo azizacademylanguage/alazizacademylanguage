@@ -65,6 +65,15 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
             ip_manzil=ip_manzil,
             user_agent=user_agent,
         )
+        try:
+            from exams.features import log_faoliyat, check_achievements
+            if request:
+                log_faoliyat(request, 'kirish', 'Platformaga muvaffaqiyatli kirildi')
+                if user.role == User.ROLE_OQUVCHI:
+                    check_achievements(user)
+        except Exception:
+            # Yangi migratsiyalar hali bajarilmagan birinchi deployda loginni to'xtatmaydi.
+            pass
         data['user'] = {
             'id': user.id,
             'username': user.username,

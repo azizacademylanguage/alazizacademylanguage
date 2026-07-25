@@ -112,6 +112,7 @@ class GateTest(models.Model):
         'courses.Daraja', on_delete=models.CASCADE, related_name='gate_test'
     )
     sarlavha = models.CharField(max_length=200, default='Daraja testi')
+    vaqt_chegarasi_daq = models.PositiveIntegerField(default=25)
 
     class Meta:
         db_table = 'gate_testlar'
@@ -179,6 +180,7 @@ class FinalTest(models.Model):
         'courses.Daraja', on_delete=models.CASCADE, related_name='final_test'
     )
     sarlavha = models.CharField(max_length=200, default='Yakuniy test')
+    vaqt_chegarasi_daq = models.PositiveIntegerField(default=30)
     otish_bali_foiz = models.PositiveIntegerField(default=70)
 
     class Meta:
@@ -226,6 +228,9 @@ class Sertifikat(models.Model):
     kod = models.CharField(max_length=20, unique=True, db_index=True)  # tekshirish kodi
     foiz = models.DecimalField(max_digits=5, decimal_places=2)
     berilgan_sana = models.DateTimeField(auto_now_add=True)
+    faol = models.BooleanField(default=True)
+    bekor_qilingan_sana = models.DateTimeField(null=True, blank=True)
+    bekor_sabab = models.CharField(max_length=255, blank=True)
 
     class Meta:
         db_table = 'sertifikatlar'
@@ -351,7 +356,9 @@ class CoinTarix(models.Model):
         ('gate_test', 'Gate Test topshirildi'),
         ('final_test', 'Final Test topshirildi'),
         ('shop', "Do'kondan xarid"),
-        ('soz_oyini', "So'z o'yini"),
+        ('tezkor_oyin', "Tezkor tarjima o'yini"),
+        ('yutuq', 'Yutuq mukofoti'),
+        ('kunlik', 'Kunlik faollik'),
         ('admin', 'Admin tomonidan qo\'lda berilgan'),
     )
     oquvchi = models.ForeignKey(User, on_delete=models.CASCADE, related_name='coin_tarixi')
@@ -410,7 +417,7 @@ class ShopBuyurtma(models.Model):
         return f"{self.oquvchi.full_name} - {self.mahsulot.nomi}"
 
 
-# ==================== SO'Z XOTIRA O'YINI ====================
+# ==================== O‘YIN UCHUN SO‘Z JUFTLIKLARI ====================
 
 class SozJuftligi(models.Model):
     """Biriktirilgan fan bo'yicha chet tili va o'zbekcha tarjima jufti."""
@@ -429,28 +436,6 @@ class SozJuftligi(models.Model):
 
     def __str__(self):
         return f"{self.chet_soz} — {self.uzbek_soz}"
-
-
-class SozOyiniSessiya(models.Model):
-    """20 ta yopiq karta (10 juft) uchun bir martalik, tekshiriladigan o'yin sessiyasi."""
-    token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
-    oquvchi = models.ForeignKey(User, on_delete=models.CASCADE, related_name='soz_oyini_sessiyalari')
-    fan = models.ForeignKey('courses.Fan', on_delete=models.CASCADE, related_name='soz_oyini_sessiyalari')
-    cardlar = models.JSONField(default=list)
-    tugallangan = models.BooleanField(default=False)
-    topilgan_soni = models.PositiveIntegerField(default=0)
-    berilgan_coin = models.PositiveIntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-    completed_at = models.DateTimeField(null=True, blank=True)
-
-    class Meta:
-        db_table = 'soz_oyini_sessiyalari'
-        ordering = ['-created_at']
-        verbose_name = "So'z o'yini sessiyasi"
-        verbose_name_plural = "So'z o'yini sessiyalari"
-
-    def __str__(self):
-        return f"{self.oquvchi.full_name} - {self.fan.nomi} - {self.topilgan_soni}/10"
 
 
 # ==================== ADMIN AUDIT LOG ====================
@@ -577,6 +562,13 @@ class PlatformSozlama(models.Model):
     standart_test_foizi = models.PositiveIntegerField(default=80)
     mashq_coin = models.PositiveIntegerField(default=5)
     final_test_coin = models.PositiveIntegerField(default=50)
+    tezkor_oyin_har_javob_coin = models.PositiveIntegerField(default=1)
+    tezkor_oyin_mukammal_bonus = models.PositiveIntegerField(default=5)
+    birinchi_urinish_bonus = models.PositiveIntegerField(default=3)
+    mukammal_test_bonus = models.PositiveIntegerField(default=10)
+    bildirishnomalar_faol = models.BooleanField(default=True)
+    tolov_nazorati_faol = models.BooleanField(default=False)
+    tolov_ogohlantirish_kun = models.PositiveIntegerField(default=3)
     xavfsizlik_eslatmasi = models.CharField(
         max_length=255,
         default="Parolingizni hech kimga bermang va umumiy qurilmalarda hisobdan chiqishni unutmang.",
@@ -597,3 +589,213 @@ class PlatformSozlama(models.Model):
     def load(cls):
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
+
+
+# ==================== BILDIRISHNOMALAR ====================
+
+class Bildirishnoma(models.Model):
+    TARGET_ALL = 'all'
+    TARGET_USER = 'user'
+    TARGET_FAN = 'fan'
+    TARGET_DARAJA = 'daraja'
+    TARGET_CHOICES = (
+        (TARGET_ALL, 'Barcha o‘quvchilar'),
+        (TARGET_USER, 'Bitta o‘quvchi'),
+        (TARGET_FAN, 'Fan bo‘yicha'),
+        (TARGET_DARAJA, 'Daraja bo‘yicha'),
+    )
+    TUR_CHOICES = (
+        ('info', 'Ma’lumot'),
+        ('success', 'Muvaffaqiyat'),
+        ('warning', 'Ogohlantirish'),
+        ('danger', 'Muhim'),
+    )
+
+    sarlavha = models.CharField(max_length=180)
+    matn = models.TextField()
+    tur = models.CharField(max_length=20, choices=TUR_CHOICES, default='info')
+    target_turi = models.CharField(max_length=20, choices=TARGET_CHOICES, default=TARGET_ALL)
+    target_user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='shaxsiy_bildirishnomalar')
+    target_fan = models.ForeignKey('courses.Fan', on_delete=models.CASCADE, null=True, blank=True, related_name='bildirishnomalar')
+    target_daraja = models.ForeignKey('courses.Daraja', on_delete=models.CASCADE, null=True, blank=True, related_name='bildirishnomalar')
+    havola = models.CharField(max_length=300, blank=True)
+    faol = models.BooleanField(default=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='yaratgan_bildirishnomalar')
+    created_at = models.DateTimeField(auto_now_add=True)
+    tugash_sana = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'bildirishnomalar'
+        ordering = ['-created_at']
+        indexes = [models.Index(fields=['faol', '-created_at'], name='bildirishnoma_faol_idx')]
+
+    def __str__(self):
+        return self.sarlavha
+
+
+class BildirishnomaOqildi(models.Model):
+    bildirishnoma = models.ForeignKey(Bildirishnoma, on_delete=models.CASCADE, related_name='oqilganlar')
+    oquvchi = models.ForeignKey(User, on_delete=models.CASCADE, related_name='oqilgan_bildirishnomalar')
+    oqilgan_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'bildirishnoma_oqildi'
+        unique_together = ('bildirishnoma', 'oquvchi')
+
+
+# ==================== PLACEMENT TEST NATIJASI ====================
+
+class PlacementNatija(models.Model):
+    oquvchi = models.ForeignKey(User, on_delete=models.CASCADE, related_name='placement_natijalari')
+    fan = models.ForeignKey('courses.Fan', on_delete=models.CASCADE, related_name='placement_natijalari')
+    togri_soni = models.PositiveIntegerField(default=0)
+    jami_soni = models.PositiveIntegerField(default=0)
+    foiz = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    tavsiya_daraja = models.ForeignKey('courses.Daraja', on_delete=models.SET_NULL, null=True, blank=True, related_name='placement_tavsiyalari')
+    javoblar = models.JSONField(default=list, blank=True)
+    xavfsizlik = models.JSONField(default=dict, blank=True)
+    tasdiqlangan = models.BooleanField(default=False)
+    tasdiqlagan = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='tasdiqlagan_placement_natijalari')
+    tasdiqlangan_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'placement_natijalari'
+        ordering = ['-created_at']
+
+
+# ==================== TEST XAVFSIZLIGI ====================
+
+class TestXavfsizlikLog(models.Model):
+    TEST_CHOICES = (
+        ('mashq', 'Mashq'),
+        ('gate', 'Gate Test'),
+        ('final', 'Final Test'),
+        ('placement', 'Placement Test'),
+    )
+    oquvchi = models.ForeignKey(User, on_delete=models.CASCADE, related_name='test_xavfsizlik_loglari')
+    test_turi = models.CharField(max_length=20, choices=TEST_CHOICES)
+    obyekt_id = models.PositiveIntegerField(default=0)
+    davomiylik_soniya = models.PositiveIntegerField(default=0)
+    sahifadan_chiqish_soni = models.PositiveIntegerField(default=0)
+    shubhali = models.BooleanField(default=False)
+    sabablar = models.JSONField(default=list, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True)
+    ip_manzil = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'test_xavfsizlik_loglari'
+        ordering = ['-created_at']
+        indexes = [models.Index(fields=['shubhali', '-created_at'], name='test_xavfsiz_shubha_idx')]
+
+
+# ==================== FOYDALANUVCHI FAOLIYATI ====================
+
+class FaoliyatLog(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='faoliyat_loglari')
+    amal = models.CharField(max_length=60)
+    tavsif = models.CharField(max_length=300, blank=True)
+    obyekt_turi = models.CharField(max_length=60, blank=True)
+    obyekt_id = models.PositiveIntegerField(null=True, blank=True)
+    meta = models.JSONField(default=dict, blank=True)
+    ip_manzil = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'foydalanuvchi_faoliyati'
+        ordering = ['-created_at']
+        indexes = [models.Index(fields=['user', '-created_at'], name='faoliyat_user_created_idx')]
+
+
+class OquvchiKunlikFaollik(models.Model):
+    oquvchi = models.ForeignKey(User, on_delete=models.CASCADE, related_name='kunlik_faollik')
+    sana = models.DateField()
+
+    class Meta:
+        db_table = 'oquvchi_kunlik_faollik'
+        unique_together = ('oquvchi', 'sana')
+        ordering = ['-sana']
+
+
+# ==================== YUTUQLAR ====================
+
+class Yutuq(models.Model):
+    kod = models.CharField(max_length=50, unique=True)
+    nomi = models.CharField(max_length=150)
+    tavsif = models.CharField(max_length=300)
+    icon = models.CharField(max_length=40, default='🏆')
+    coin_mukofot = models.PositiveIntegerField(default=0)
+    faol = models.BooleanField(default=True)
+    tartib = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = 'yutuqlar'
+        ordering = ['tartib', 'id']
+
+    def __str__(self):
+        return self.nomi
+
+
+class OquvchiYutuq(models.Model):
+    oquvchi = models.ForeignKey(User, on_delete=models.CASCADE, related_name='yutuqlari')
+    yutuq = models.ForeignKey(Yutuq, on_delete=models.CASCADE, related_name='olganlar')
+    meta = models.JSONField(default=dict, blank=True)
+    olingan_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'oquvchi_yutuqlari'
+        unique_together = ('oquvchi', 'yutuq')
+        ordering = ['-olingan_at']
+
+
+# ==================== TO‘LOV VA FOYDALANISH MUDDATI ====================
+
+class Tolov(models.Model):
+    STATUS_CHOICES = (
+        ('tolangan', 'To‘langan'),
+        ('qisman', 'Qisman to‘langan'),
+        ('qarzdor', 'Qarzdor'),
+        ('imtiyozli', 'Imtiyozli'),
+        ('bekor', 'Bekor qilingan'),
+    )
+    oquvchi = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tolovlar')
+    summa = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    tolangan_summa = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    chegirma_foiz = models.PositiveIntegerField(default=0)
+    boshlanish_sana = models.DateField()
+    tugash_sana = models.DateField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='qarzdor')
+    izoh = models.CharField(max_length=300, blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='kiritgan_tolovlar')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'tolovlar'
+        ordering = ['-tugash_sana', '-created_at']
+        indexes = [models.Index(fields=['oquvchi', '-tugash_sana'], name='tolov_user_end_idx')]
+
+    @property
+    def qolgan_summa(self):
+        return max(self.summa - self.tolangan_summa, 0)
+
+
+# ==================== TEZKOR TARJIMA O‘YINI ====================
+
+class TezkorOyiniSessiya(models.Model):
+    token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+    oquvchi = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tezkor_oyin_sessiyalari')
+    fan = models.ForeignKey('courses.Fan', on_delete=models.CASCADE, related_name='tezkor_oyin_sessiyalari')
+    savollar = models.JSONField(default=list)
+    togri_soni = models.PositiveIntegerField(default=0)
+    jami_soni = models.PositiveIntegerField(default=10)
+    berilgan_coin = models.PositiveIntegerField(default=0)
+    tugallangan = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'tezkor_oyin_sessiyalari'
+        ordering = ['-created_at']

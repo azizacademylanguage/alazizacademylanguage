@@ -136,7 +136,7 @@ class FinalLevelAndCertificateTests(APITestCase):
         self.assertEqual(admin_response.data[0]['oquvchi_ism'], 'Ali Valiyev')
 
 
-class WordGameAndShopTests(APITestCase):
+class QuickGameAndShopTests(APITestCase):
     def setUp(self):
         from accounts.models import Filial
         from exams.models import ShopMahsulot, SozJuftligi
@@ -174,51 +174,39 @@ class WordGameAndShopTests(APITestCase):
             nomi='Test kitob', tavsif='Sinov mahsuloti', narx_coin=6, faol=True,
         )
 
-    def _correct_pairs(self, cards):
-        grouped = {}
-        for card in cards:
-            grouped.setdefault(card['juftlik_id'], []).append(card['id'])
-        return [
-            {'birinchi': ids[0], 'ikkinchi': ids[1]}
-            for ids in grouped.values()
-        ]
-
-    def test_word_game_awards_ten_coins_only_once(self):
-        from exams.models import OquvchiCoin, SozOyiniSessiya
+    def test_quick_translation_game_awards_coins_only_once(self):
+        from exams.models import OquvchiCoin, TezkorOyiniSessiya
 
         self.client.force_authenticate(self.student)
-        start = self.client.get('/api/oquvchi/soz-oyini/')
+        start = self.client.get('/api/oquvchi/tezkor-oyin/')
         self.assertEqual(start.status_code, 200, start.data)
-        self.assertEqual(len(start.data['cardlar']), 20)
-        self.assertNotIn('juftlik_id', start.data['cardlar'][0])
+        self.assertEqual(len(start.data['savollar']), 10)
+        self.assertNotIn('togri', start.data['savollar'][0])
 
-        session = SozOyiniSessiya.objects.get(token=start.data['token'])
-        pairs = self._correct_pairs(session.cardlar)
-        check = self.client.post(
-            f"/api/oquvchi/soz-oyini/{session.token}/tekshirish/",
-            pairs[0],
-            format='json',
-        )
-        self.assertEqual(check.status_code, 200, check.data)
-        self.assertTrue(check.data['togri'])
-
+        session = TezkorOyiniSessiya.objects.get(token=start.data['token'])
+        answers = [
+            {'savol': question['id'], 'javob': question['togri']}
+            for question in session.savollar
+        ]
         finish = self.client.post(
-            f"/api/oquvchi/soz-oyini/{session.token}/yakunlash/",
-            {'juftliklar': pairs},
+            f"/api/oquvchi/tezkor-oyin/{session.token}/yakunlash/",
+            {'javoblar': answers},
             format='json',
         )
         self.assertEqual(finish.status_code, 200, finish.data)
-        self.assertEqual(finish.data['berilgan_coin'], 10)
-        self.assertEqual(finish.data['balans'], 10)
+        self.assertEqual(finish.data['togri_soni'], 10)
+        self.assertEqual(finish.data['berilgan_coin'], 15)
+        # 15 o'yin coini + bir martalik 10 coinlik "Tezkor tarjimon" yutug'i.
+        self.assertEqual(finish.data['balans'], 25)
 
         second_finish = self.client.post(
-            f"/api/oquvchi/soz-oyini/{session.token}/yakunlash/",
-            {'juftliklar': pairs},
+            f"/api/oquvchi/tezkor-oyin/{session.token}/yakunlash/",
+            {'javoblar': answers},
             format='json',
         )
         self.assertEqual(second_finish.status_code, 200)
         self.assertTrue(second_finish.data['allaqachon_yakunlangan'])
-        self.assertEqual(OquvchiCoin.objects.get(oquvchi=self.student).balans, 10)
+        self.assertEqual(OquvchiCoin.objects.get(oquvchi=self.student).balans, 25)
 
     def test_shop_purchase_is_visible_to_admin_and_same_branch_manager(self):
         from exams.models import OquvchiCoin, ShopBuyurtma

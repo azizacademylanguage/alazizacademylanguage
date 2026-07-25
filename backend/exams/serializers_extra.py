@@ -9,7 +9,7 @@ from .models import (
     GateTest, GateTestSavol, GateTestJavob, GateTestNatija,
     FinalTest, FinalTestSavol, FinalTestJavob, FinalTestNatija, Sertifikat,
     WritingTopshiriq, WritingNatija, SpeakingTopshiriq, SpeakingNatija,
-    OquvchiCoin, CoinTarix, ShopMahsulot, ShopBuyurtma, SozJuftligi, SozOyiniSessiya, AdminAmalLog,
+    OquvchiCoin, CoinTarix, ShopMahsulot, ShopBuyurtma, SozJuftligi, AdminAmalLog,
 )
 from courses.utils import toza_daraja_nomi
 
@@ -55,7 +55,7 @@ class GateTestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = GateTest
-        fields = ['id', 'daraja', 'daraja_nomi', 'sarlavha', 'savollar']
+        fields = ['id', 'daraja', 'daraja_nomi', 'sarlavha', 'vaqt_chegarasi_daq', 'savollar']
 
 
 class GateTestOquvchigaSerializer(serializers.ModelSerializer):
@@ -63,7 +63,12 @@ class GateTestOquvchigaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = GateTest
-        fields = ['id', 'sarlavha', 'savollar']
+        fields = ['id', 'sarlavha', 'vaqt_chegarasi_daq', 'savollar']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        random.shuffle(data['savollar'])
+        return data
 
 
 class GateTestNatijaSerializer(serializers.ModelSerializer):
@@ -113,7 +118,7 @@ class FinalTestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FinalTest
-        fields = ['id', 'daraja', 'daraja_nomi', 'sarlavha', 'otish_bali_foiz', 'savollar']
+        fields = ['id', 'daraja', 'daraja_nomi', 'sarlavha', 'vaqt_chegarasi_daq', 'otish_bali_foiz', 'savollar']
 
 
 class FinalTestOquvchigaSerializer(serializers.ModelSerializer):
@@ -123,7 +128,12 @@ class FinalTestOquvchigaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FinalTest
-        fields = ['id', 'sarlavha', 'otish_bali_foiz', 'fan_nomi', 'daraja_nomi', 'savollar']
+        fields = ['id', 'sarlavha', 'vaqt_chegarasi_daq', 'otish_bali_foiz', 'fan_nomi', 'daraja_nomi', 'savollar']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        random.shuffle(data['savollar'])
+        return data
 
     def get_daraja_nomi(self, obj):
         return toza_daraja_nomi(obj.daraja.nomi)
@@ -143,7 +153,7 @@ class SertifikatSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'oquvchi', 'oquvchi_ism', 'oquvchi_username', 'daraja',
             'daraja_nomi', 'fan_nomi', 'kod', 'foiz', 'berilgan_sana',
-            'pdf_url', 'qr_url', 'tekshirish_url',
+            'pdf_url', 'qr_url', 'tekshirish_url', 'faol', 'bekor_qilingan_sana', 'bekor_sabab',
         ]
 
     def get_daraja_nomi(self, obj):
@@ -319,7 +329,9 @@ class PlatformSozlamaSerializer(serializers.ModelSerializer):
             'id', 'platform_nomi', 'platform_qisqa_nomi', 'logo_url', 'ai_yordamchi_faol',
             'ai_kunlik_limit', 'murojaatlar_faol', 'texnik_rejim', 'texnik_xabar',
             'max_fayl_mb', 'standart_test_foizi', 'mashq_coin', 'final_test_coin',
-            'xavfsizlik_eslatmasi', 'updated_by', 'updated_by_ism', 'updated_at',
+            'tezkor_oyin_har_javob_coin', 'tezkor_oyin_mukammal_bonus',
+            'birinchi_urinish_bonus', 'mukammal_test_bonus', 'bildirishnomalar_faol',
+            'tolov_nazorati_faol', 'tolov_ogohlantirish_kun', 'xavfsizlik_eslatmasi', 'updated_by', 'updated_by_ism', 'updated_at',
         ]
         read_only_fields = ['updated_by', 'updated_at']
 

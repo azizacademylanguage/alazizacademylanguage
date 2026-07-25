@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 from . import views
 from . import views_extra
 from .admin_progress import AdminOquvchiProgressView
+from . import features_views
 
 router = DefaultRouter()
 router.register('admin/mashqlar', views.MashqViewSet, basename='mashq')
@@ -51,9 +52,6 @@ urlpatterns = [
     path('oquvchi/speaking-topshirish/<int:topshiriq_id>/', views_extra.SpeakingTopshirishView.as_view(), name='speaking-topshirish'),
 
     # ---- So'z o'yini / Coin / Shop ----
-    path('oquvchi/soz-oyini/', views_extra.SozOyiniBoshlashView.as_view(), name='soz-oyini-boshlash'),
-    path('oquvchi/soz-oyini/<uuid:token>/tekshirish/', views_extra.SozOyiniJuftTekshirishView.as_view(), name='soz-oyini-tekshirish'),
-    path('oquvchi/soz-oyini/<uuid:token>/yakunlash/', views_extra.SozOyiniYakunlashView.as_view(), name='soz-oyini-yakunlash'),
     path('oquvchi/coinlarim/', views_extra.MeningCoinlarimView.as_view(), name='coinlarim'),
     path('oquvchi/shop/', views_extra.ShopMahsulotlarView.as_view(), name='shop-royxati'),
     path('oquvchi/shop-buyurtmalarim/', views_extra.MeningShopBuyurtmalarimView.as_view(), name='shop-buyurtmalarim'),
@@ -61,6 +59,41 @@ urlpatterns = [
     path('boshqaruv/shop-buyurtmalar/', views_extra.ShopBuyurtmalarBoshqaruvView.as_view(), name='shop-buyurtmalar-boshqaruv'),
     path('boshqaruv/shop-buyurtmalar/<int:buyurtma_id>/status/', views_extra.ShopBuyurtmaStatusView.as_view(), name='shop-buyurtma-status'),
     path('admin/oquvchilar/<int:oquvchi_id>/coin-berish/', views_extra.AdminCoinBerishView.as_view(), name='admin-coin-berish'),
+
+
+    # ---- Bildirishnomalar ----
+    path('oquvchi/bildirishnomalar/', features_views.MeningBildirishnomalarimView.as_view(), name='mening-bildirishnomalarim'),
+    path('oquvchi/bildirishnomalar/barchasini-oqish/', features_views.BarchaBildirishnomalarniOqishView.as_view(), name='bildirishnoma-barchasini-oqish'),
+    path('oquvchi/bildirishnomalar/<int:bildirishnoma_id>/oqish/', features_views.BildirishnomaOqishView.as_view(), name='bildirishnoma-oqish'),
+    path('admin/bildirishnomalar/', features_views.AdminBildirishnomalarView.as_view(), name='admin-bildirishnomalar'),
+    path('admin/bildirishnomalar/<int:bildirishnoma_id>/', features_views.AdminBildirishnomaDetailView.as_view(), name='admin-bildirishnoma-detail'),
+
+    # ---- Placement test ----
+    path('oquvchi/placement-test/', features_views.PlacementTestView.as_view(), name='placement-test'),
+    path('admin/placement-natijalari/', features_views.AdminPlacementNatijalarView.as_view(), name='admin-placement-natijalari'),
+    path('admin/placement-natijalari/<int:natija_id>/tasdiqlash/', features_views.AdminPlacementTasdiqlashView.as_view(), name='admin-placement-tasdiqlash'),
+
+    # ---- Faoliyat, test xavfsizligi va yutuqlar ----
+    path('oquvchi/faoliyatim/', features_views.MeningFaoliyatimView.as_view(), name='mening-faoliyatim'),
+    path('admin/faoliyat/', features_views.AdminFaoliyatView.as_view(), name='admin-faoliyat'),
+    path('admin/test-xavfsizligi/', features_views.AdminTestXavfsizligiView.as_view(), name='admin-test-xavfsizligi'),
+    path('oquvchi/yutuqlarim/', features_views.MeningYutuqlarimView.as_view(), name='mening-yutuqlarim'),
+
+    # ---- To'lov va foydalanish muddati ----
+    path('oquvchi/tolovim/', features_views.MeningTolovimView.as_view(), name='mening-tolovim'),
+    path('admin/tolovlar/', features_views.AdminTolovlarView.as_view(), name='admin-tolovlar'),
+    path('admin/tolovlar/<int:tolov_id>/', features_views.AdminTolovDetailView.as_view(), name='admin-tolov-detail'),
+
+    # ---- Yangi tezkor tarjima o'yini ----
+    path('oquvchi/tezkor-oyin/', features_views.TezkorOyiniBoshlashView.as_view(), name='tezkor-oyin-boshlash'),
+    path('oquvchi/tezkor-oyin/<uuid:token>/yakunlash/', features_views.TezkorOyiniYakunlashView.as_view(), name='tezkor-oyin-yakunlash'),
+
+    # ---- Sertifikat holati ----
+    path('admin/sertifikatlar/<int:sertifikat_id>/status/', features_views.AdminSertifikatStatusView.as_view(), name='admin-sertifikat-status'),
+
+    # ---- Backup va tiklash ----
+    path('admin/backup/yuklash/', features_views.AdminBackupDownloadView.as_view(), name='admin-backup-yuklash'),
+    path('admin/backup/tiklash/', features_views.AdminBackupRestoreView.as_view(), name='admin-backup-tiklash'),
 
     # ---- AI yordamchi ----
     path('oquvchi/ai-yordamchi/', views_extra.AIYordamchiView.as_view(), name='ai-yordamchi'),

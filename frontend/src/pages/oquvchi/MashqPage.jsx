@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getMashq, topshirMashq } from '../../api/oquvchi';
 import { Card, Button, ProgressBar, Skeleton } from '../../components/ui';
-import { ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle2, ShieldAlert } from 'lucide-react';
+import useTestSecurity from '../../hooks/useTestSecurity';
 
 export default function MashqPage() {
   const { mashqId } = useParams();
@@ -14,6 +15,7 @@ export default function MashqPage() {
   const [submitting, setSubmitting] = useState(false);
   const [natija, setNatija] = useState(null);
   const [direction, setDirection] = useState('forward');
+  const security = useTestSecurity(null);
 
   useEffect(() => {
     getMashq(mashqId).then(setMashq).finally(() => setLoading(false));
@@ -57,7 +59,7 @@ export default function MashqPage() {
         if (s.tur === 'text') return { savol: s.id, matn_javob: javoblar[s.id] || '' };
         return { savol: s.id, tanlangan_javoblar: javoblar[s.id] || [] };
       });
-      const result = await topshirMashq(mashqId, payload);
+      const result = await topshirMashq(mashqId, payload, security.getSecurityData());
       setNatija(result);
     } finally {
       setSubmitting(false);
@@ -129,7 +131,7 @@ export default function MashqPage() {
           <h1 className="font-display text-xl font-bold" style={{ color: 'var(--color-ink)' }}>{mashq.sarlavha}</h1>
           <p className="text-xs mt-1" style={{ color: '#8A8371' }}>Keyingi mavzu uchun kamida 80% kerak.</p>
         </div>
-        <span className="text-sm font-medium tabular-nums" style={{ color: '#8A8371' }}>{currentIdx + 1} / {jamiSavol}</span>
+        <div className="text-right"><span className="text-sm font-medium tabular-nums" style={{ color: '#8A8371' }}>{currentIdx + 1} / {jamiSavol}</span><p className="text-xs mt-1 inline-flex items-center gap-1 ml-3" style={{ color: security.focusLosses ? 'var(--color-red)' : '#8A8371' }}><ShieldAlert size={12} /> Chiqish: {security.focusLosses}</p></div>
       </div>
       <ProgressBar value={((currentIdx + 1) / jamiSavol) * 100} tone="amber" />
 

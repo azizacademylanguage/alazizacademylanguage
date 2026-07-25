@@ -87,7 +87,7 @@ export default function DashboardLayout({ navItems, children, extraSidebarConten
     <div className="min-h-screen flex" style={{ background: 'var(--color-paper)' }}>
       {/* Desktop sidebar */}
       <aside
-        className="hidden lg:flex w-64 flex-shrink-0 flex-col justify-between p-5 sticky top-0 h-screen"
+        className="hidden lg:flex w-64 flex-shrink-0 flex-col justify-between p-5 sticky top-0 h-screen overflow-y-auto"
         style={{ background: 'linear-gradient(180deg, var(--color-forest) 0%, var(--color-teal) 62%, var(--color-amethyst) 125%)', boxShadow: '12px 0 40px rgba(8,41,0,0.08)' }}
       >
         <SidebarContent />

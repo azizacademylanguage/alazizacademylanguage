@@ -138,6 +138,11 @@ class FanlarimView(APIView):
     permission_classes = [IsOquvchi]
 
     def get(self, request):
+        from exams.features import require_payment_or_none, log_faoliyat
+        payment_block = require_payment_or_none(request.user)
+        if payment_block:
+            return Response({'detail': "Foydalanish muddati tugagan.", 'tolov': payment_block}, status=status.HTTP_402_PAYMENT_REQUIRED)
+        log_faoliyat(request, 'fanlar_korildi', "Darajalarim bo‘limi")
         # Har bir o'quvchiga faqat admin tanlagan bitta fan ko'rsatiladi.
         biriktirilgan = OquvchiFan.objects.filter(oquvchi=request.user).select_related(
             'daraja__fan'
@@ -153,6 +158,10 @@ class MavzularView(APIView):
     permission_classes = [IsOquvchi]
 
     def get(self, request, daraja_id):
+        from exams.features import require_payment_or_none, log_faoliyat
+        payment_block = require_payment_or_none(request.user)
+        if payment_block:
+            return Response({'detail': "Foydalanish muddati tugagan.", 'tolov': payment_block}, status=status.HTTP_402_PAYMENT_REQUIRED)
         try:
             daraja = Daraja.objects.select_related('fan').get(id=daraja_id)
         except Daraja.DoesNotExist:
@@ -171,6 +180,7 @@ class MavzularView(APIView):
             'darslar__progresslar', 'darslar__mashq__natijalar'
         ).order_by('tartib', 'id')
         serializer = MavzuQisqaSerializer(mavzular, many=True, context={'oquvchi': request.user})
+        log_faoliyat(request, 'mavzular_korildi', daraja.nomi, 'daraja', daraja.id)
         return Response(serializer.data)
 
 
@@ -179,6 +189,10 @@ class DarsBatafsilView(APIView):
     permission_classes = [IsOquvchi]
 
     def get(self, request, dars_id):
+        from exams.features import require_payment_or_none, log_faoliyat
+        payment_block = require_payment_or_none(request.user)
+        if payment_block:
+            return Response({'detail': "Foydalanish muddati tugagan.", 'tolov': payment_block}, status=status.HTTP_402_PAYMENT_REQUIRED)
         try:
             dars = Dars.objects.select_related('mavzu__daraja').get(id=dars_id)
         except Dars.DoesNotExist:
@@ -200,6 +214,7 @@ class DarsBatafsilView(APIView):
         data['mashq_bor'] = hasattr(dars, 'mashq')
         if hasattr(dars, 'mashq'):
             data['mashq_id'] = dars.mashq.id
+        log_faoliyat(request, 'dars_korildi', dars.sarlavha, 'dars', dars.id)
         return Response(data)
 
 
@@ -208,6 +223,10 @@ class DarsProgressSaqlashView(APIView):
     permission_classes = [IsOquvchi]
 
     def post(self, request, dars_id):
+        from exams.features import require_payment_or_none, log_faoliyat
+        payment_block = require_payment_or_none(request.user)
+        if payment_block:
+            return Response({'detail': "Foydalanish muddati tugagan.", 'tolov': payment_block}, status=status.HTTP_402_PAYMENT_REQUIRED)
         try:
             dars = Dars.objects.get(id=dars_id)
         except Dars.DoesNotExist:
@@ -225,4 +244,5 @@ class DarsProgressSaqlashView(APIView):
         if 'video_tugatilgan' in request.data:
             progress.video_tugatilgan = request.data['video_tugatilgan']
         progress.save()
+        log_faoliyat(request, 'dars_progress', dars.sarlavha, 'dars', dars.id, {'video_tugatilgan': progress.video_tugatilgan, 'pozitsiya': progress.video_pozitsiya_soniya})
         return Response(DarsProgressSerializer(progress).data)

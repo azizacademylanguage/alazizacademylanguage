@@ -4,6 +4,7 @@ import { getCoinlarim } from '../../api/coinShop';
 import { useAuth } from '../../context/AuthContext';
 import { Card, StatCard, Skeleton } from '../../components/ui';
 import SelectedCoursePanel from '../../components/SelectedCoursePanel';
+import PwaInstallCard from '../../components/PwaInstallCard';
 import { Award, ClipboardCheck, Coins, LineChart as LineChartIcon, TrendingUp } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
@@ -57,6 +58,8 @@ export default function OquvchiDashboard() {
         </div>
         <div className="welcome-orb" aria-hidden="true">✦</div>
       </div>
+
+      <PwaInstallCard />
 
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

@@ -1,0 +1,97 @@
+AL-AZIZ LANGUAGE PLATFORMASI — YANGI BO‘LIMLAR
+================================================
+
+Ushbu versiyada quyidagi imkoniyatlar qo‘shildi:
+
+4. BILDIRISHNOMALAR MARKAZI
+- Admin barcha o‘quvchilarga yoki bitta o‘quvchi, fan va daraja bo‘yicha xabar yuboradi.
+- Xabar turi, havolasi, tugash vaqti, faol/o‘chirilgan holati boshqariladi.
+- O‘quvchi o‘qilgan/o‘qilmagan xabarlarini ko‘radi.
+- Sertifikat, yutuq, to‘lov va daraja bo‘yicha avtomatik xabarlar yaratiladi.
+
+5. SERTIFIKATNI QR ORQALI TEKSHIRISH
+- Har bir sertifikat kodi va QR kodi orqali ochiq tekshiriladi.
+- Admin sertifikatni bekor qilishi yoki qayta faollashtirishi mumkin.
+- Bekor qilingan sertifikat uchun QR/PDF yuklash bloklanadi va sabab ko‘rsatiladi.
+
+6. PLACEMENT TEST
+- O‘quvchi o‘ziga biriktirilgan fan bo‘yicha darajani aniqlash testini topshiradi.
+- Savollar Gate Test bankidan darajalar bo‘yicha aralashtirib olinadi.
+- Natijaga qarab tavsiya qilingan daraja chiqadi.
+- Admin natijani tasdiqlab, tavsiya qilingan darajani o‘quvchiga biriktiradi.
+
+7. TEST XAVFSIZLIGI
+- Mashq, Gate Test, Final Test va Placement Test uchun vaqt hisoblanadi.
+- Savollar va javob variantlari aralashtiriladi.
+- Sahifadan chiqishlar va juda tez topshirilgan urinishlar qayd qilinadi.
+- Admin shubhali test urinishlarini alohida ko‘radi.
+
+8. FOYDALANUVCHI FAOLIYATI TARIXI
+- Kirish, dars ochish, test boshlash/yakunlash, sertifikat, o‘yin va boshqa muhim amallar yozib boriladi.
+- Admin foydalanuvchi, qurilma, IP va vaqt bo‘yicha tarixni ko‘radi.
+- O‘quvchi o‘z faoliyati va ketma-ket faol kunlarini ko‘radi.
+
+9. COIN VA YUTUQLAR
+- Birinchi urinish, 100% test va final test uchun qo‘shimcha coin beriladi.
+- Birinchi test, 100% natija, 10 ta test, sertifikat, 7 kunlik faollik va o‘yin yutuqlari mavjud.
+- Har bir yutuq uchun bir martalik coin mukofoti beriladi.
+- Coin va bonus miqdorlari admin sozlamalaridan boshqariladi.
+
+11. TO‘LOV VA FOYDALANISH MUDDATI
+- Admin o‘quvchining summa, to‘langan summa, chegirma, holat va muddatini kiritadi.
+- O‘quvchi o‘z to‘lov holati va qolgan kunlarini ko‘radi.
+- Muddat tugashidan oldin avtomatik ogohlantirish yuboriladi.
+- Admin sozlamadan to‘lov nazoratini yoqsa, faol muddati bo‘lmagan o‘quvchiga yangi kontent yopiladi.
+- Xavfsizlik uchun to‘lov nazorati birinchi deployda O‘CHIRILGAN holatda turadi.
+
+12. PWA MOBIL ILOVA
+- Platforma Android/kompyuter brauzeridan bosh ekranga ilova sifatida o‘rnatiladi.
+- Manifest, 192x192 va 512x512 ikonalar, Service Worker va offline app-shell qo‘shildi.
+- O‘quvchi bosh sahifasida brauzer qo‘llasa “O‘rnatish” tugmasi chiqadi.
+
+13. BACKUP VA TIKLASH
+- Admin barcha asosiy ma’lumotlarni ZIP ichidagi JSON backup faylga yuklaydi.
+- Tiklash uchun ZIP ichidan JSON fayl chiqarilib, admin panelga yuklanadi.
+- Tiklashni tasdiqlash uchun TIKLASH deb yozish talab qilinadi.
+- Tiklashdan oldin yangi backup olish tavsiya qilinadi.
+
+YANGI O‘YIN
+- Eski kartalarni moslashtirib coin yig‘ish o‘yini va uning bazadagi sessiya jadvali olib tashlandi.
+- O‘rniga “Tezkor tarjima” o‘yini qo‘shildi.
+- 90 soniyada 10 ta tarjima savoli yechiladi.
+- Har to‘g‘ri javob va 10/10 natija uchun sozlanadigan coin beriladi.
+- Bir kunda 3 ta mukofotli o‘yin limiti mavjud.
+- O‘yin ishlashi uchun har bir fan bo‘yicha kamida 10 ta faol So‘z juftligi bo‘lishi kerak.
+
+DEPLOY QILISH
+==============
+1. Fayllarni GitHub repository ustiga nusxalang.
+2. Terminalda:
+   git add -A
+   git commit -m "Bildirishnoma placement xavfsizlik tolov PWA backup va yangi oyin"
+   git push origin main
+3. Railway avtomatik deployda quyidagini bajaradi:
+   python manage.py migrate --noinput
+4. Netlify frontendni qayta build qiladi.
+5. Eski sahifa keshi ko‘rinsa Ctrl+F5 bosing. Zarur bo‘lsa brauzer Site settings ichidan eski Service Worker/cache’ni tozalang.
+
+LOKAL ISHGA TUSHIRISH
+=====================
+Backend:
+  cd backend
+  py -m venv venv
+  .\venv\Scripts\Activate.ps1
+  py -m pip install -r requirements.txt
+  py manage.py migrate
+  py manage.py runserver
+
+Frontend (yangi terminalda):
+  cd frontend
+  npm install
+  npm run dev
+
+MUHIM
+=====
+- Admin to‘lov nazoratini yoqishdan OLDIN amaldagi o‘quvchilarga to‘lov/muddat kiritsin.
+- Placement Test ishlashi uchun fan darajalarida jami kamida 5 ta Gate Test savoli bo‘lishi kerak.
+- Tezkor tarjima o‘yini uchun Django admin yoki mavjud boshqaruv orqali har fan uchun kamida 10 ta faol So‘z juftligi kiriting.

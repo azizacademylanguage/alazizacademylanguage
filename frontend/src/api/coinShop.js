@@ -2,13 +2,6 @@ import client from './client';
 
 export const getCoinlarim = () => client.get('/oquvchi/coinlarim/').then((r) => r.data);
 
-// So'z xotira o'yini
-export const startSozOyini = () => client.get('/oquvchi/soz-oyini/').then((r) => r.data);
-export const checkSozOyiniPair = (token, birinchi, ikkinchi) =>
-  client.post(`/oquvchi/soz-oyini/${token}/tekshirish/`, { birinchi, ikkinchi }).then((r) => r.data);
-export const finishSozOyini = (token, juftliklar) =>
-  client.post(`/oquvchi/soz-oyini/${token}/yakunlash/`, { juftliklar }).then((r) => r.data);
-
 // O'quvchi do'koni
 export const getShopMahsulotlari = () => client.get('/oquvchi/shop/').then((r) => r.data);
 export const getShopBuyurtmalarim = () => client.get('/oquvchi/shop-buyurtmalarim/').then((r) => r.data);

@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import DashboardLayout from '../../components/DashboardLayout';
-import { LayoutDashboard, Building2, Users, UserRoundPlus, BookOpen, ShoppingBag, FileClock, Download, Award, PackageCheck, BarChart3, MessagesSquare, Settings2, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Building2, Users, UserRoundPlus, BookOpen, ShoppingBag, FileClock, Download, Award, PackageCheck, BarChart3, MessagesSquare, Settings2, ShieldCheck, Bell, CreditCard, Activity, ShieldAlert, BrainCircuit, DatabaseBackup } from 'lucide-react';
 
 const navItems = [
   { to: '/admin', label: 'Boshqaruv paneli', mobileLabel: 'Bosh', icon: LayoutDashboard, end: true },
@@ -14,6 +14,12 @@ const navItems = [
   { to: '/admin/hisobotlar', label: 'Hisobotlar', mobileLabel: 'Hisobot', icon: Download },
   { to: '/admin/kuchli-analitika', label: 'Kuchli analitika', mobileLabel: 'Analitika', icon: BarChart3 },
   { to: '/admin/murojaatlar', label: 'Murojaatlar', mobileLabel: 'Murojaat', icon: MessagesSquare },
+  { to: '/admin/bildirishnomalar', label: 'Bildirishnomalar', mobileLabel: 'Xabar', icon: Bell },
+  { to: '/admin/tolovlar', label: 'To‘lovlar', mobileLabel: 'To‘lov', icon: CreditCard },
+  { to: '/admin/placement-natijalari', label: 'Placement natijalari', mobileLabel: 'Placement', icon: BrainCircuit },
+  { to: '/admin/faoliyat', label: 'Faoliyat tarixi', mobileLabel: 'Faoliyat', icon: Activity },
+  { to: '/admin/test-xavfsizligi', label: 'Test xavfsizligi', mobileLabel: 'Test xavf.', icon: ShieldAlert },
+  { to: '/admin/backup', label: 'Backup', mobileLabel: 'Backup', icon: DatabaseBackup },
   { to: '/admin/sozlamalar', label: 'Sozlamalar', mobileLabel: 'Sozlama', icon: Settings2 },
   { to: '/admin/xavfsizlik', label: 'Xavfsizlik', mobileLabel: 'Xavfsiz', icon: ShieldCheck },
   { to: '/admin/amal-loglari', label: 'Amal loglari', mobileLabel: 'Loglar', icon: FileClock },

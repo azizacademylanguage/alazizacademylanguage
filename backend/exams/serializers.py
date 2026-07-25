@@ -57,6 +57,11 @@ class MashqOquvchigaSerializer(serializers.ModelSerializer):
         model = Mashq
         fields = ['id', 'sarlavha', 'vaqt_chegarasi_daq', 'otish_bali_foiz', 'savollar', 'savollar_soni']
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        random.shuffle(data['savollar'])
+        return data
+
 
 class MashqNatijaSerializer(serializers.ModelSerializer):
     mashq_sarlavha = serializers.CharField(source='mashq.sarlavha', read_only=True)

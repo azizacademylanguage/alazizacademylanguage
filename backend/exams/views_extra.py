@@ -4,7 +4,6 @@ uchun view'lar. Asosiy exams/views.py faylini ortiqcha kattalashtirmaslik uchun
 alohida fayl.
 """
 import random
-import secrets
 import string
 
 from django.utils import timezone
@@ -27,7 +26,7 @@ from .models import (
     GateTest, GateTestSavol, GateTestJavob, GateTestNatija,
     FinalTest, FinalTestSavol, FinalTestJavob, FinalTestNatija, Sertifikat,
     WritingTopshiriq, WritingNatija, SpeakingTopshiriq, SpeakingNatija,
-    OquvchiCoin, CoinTarix, ShopMahsulot, ShopBuyurtma, SozJuftligi, SozOyiniSessiya, AdminAmalLog,
+    OquvchiCoin, CoinTarix, ShopMahsulot, ShopBuyurtma, AdminAmalLog,
 )
 from .serializers_extra import (
     GateTestSerializer, GateTestOquvchigaSerializer, GateTestNatijaSerializer,
@@ -39,6 +38,8 @@ from .serializers_extra import (
 )
 from .coins import coin_qoshish
 from .audit import log_amal
+from .features import (check_achievements, create_notification, log_faoliyat,
+                       record_test_security, require_payment_or_none)
 
 
 # ==================== ADMIN CRUD: WRITING / SPEAKING TOPSHIRIQLAR ====================
@@ -135,6 +136,9 @@ class GateTestOlishView(APIView):
     permission_classes = [IsOquvchi]
 
     def get(self, request, daraja_id):
+        payment_block = require_payment_or_none(request.user)
+        if payment_block:
+            return Response({'detail': "Foydalanish muddati tugagan.", 'tolov': payment_block}, status=status.HTTP_402_PAYMENT_REQUIRED)
         try:
             daraja = Daraja.objects.get(id=daraja_id)
         except Daraja.DoesNotExist:
@@ -144,6 +148,7 @@ class GateTestOlishView(APIView):
             return Response({'detail': "Bu daraja uchun Gate Test mavjud emas."}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = GateTestOquvchigaSerializer(daraja.gate_test)
+        log_faoliyat(request, 'gate_test_boshlandi', daraja.nomi, 'gate_test', daraja.gate_test.id)
         return Response(serializer.data)
 
 
@@ -156,6 +161,9 @@ class GateTestTopshirishView(APIView):
     permission_classes = [IsOquvchi]
 
     def post(self, request, daraja_id):
+        payment_block = require_payment_or_none(request.user)
+        if payment_block:
+            return Response({'detail': "Foydalanish muddati tugagan.", 'tolov': payment_block}, status=status.HTTP_402_PAYMENT_REQUIRED)
         try:
             daraja = Daraja.objects.get(id=daraja_id)
         except Daraja.DoesNotExist:
@@ -182,6 +190,7 @@ class GateTestTopshirishView(APIView):
         foiz = round((togri_soni / jami) * 100, 2)
         otdi = foiz >= daraja.ochish_uchun_foiz
 
+        oldin_otgan = GateTestNatija.objects.filter(oquvchi=request.user, gate_test=gate_test, otdi=True).exists()
         urinish_raqami = GateTestNatija.objects.filter(oquvchi=request.user, gate_test=gate_test).count() + 1
         natija = GateTestNatija.objects.create(
             oquvchi=request.user, gate_test=gate_test,
@@ -189,12 +198,26 @@ class GateTestTopshirishView(APIView):
             urinish_raqami=urinish_raqami,
         )
 
-        if otdi:
-            coin_qoshish(request.user, 20, 'gate_test', f"{daraja} Gate Test'dan o'tildi")
-            # Keyingi daraja bo'yicha OquvchiFan yozuvi mavjud bo'lsa, uni "ochiq" deb belgilash shart emas —
-            # daraja_ochiqmi() funksiyasi GateTestNatija orqali avtomatik tekshiradi.
+        coin_qoshildi = 0
+        if otdi and not oldin_otgan:
+            sozlama = PlatformSozlama.load()
+            coin_qoshildi = 20
+            if urinish_raqami == 1:
+                coin_qoshildi += sozlama.birinchi_urinish_bonus
+            if float(foiz) >= 100:
+                coin_qoshildi += sozlama.mukammal_test_bonus
+            coin_qoshish(request.user, coin_qoshildi, 'gate_test', f"{daraja} Gate Test'dan o'tildi")
+            next_level = keyingi_daraja(daraja)
+            if next_level:
+                create_notification('Yangi daraja ochildi', f'{next_level.nomi} darajasi siz uchun ochildi.', user=request.user, tur='success', link='/oquvchi/fanlarim')
 
-        return Response(GateTestNatijaSerializer(natija).data, status=status.HTTP_201_CREATED)
+        security = record_test_security(request, 'gate', gate_test.id, request.data.get('xavfsizlik'))
+        log_faoliyat(request, 'gate_test_yakunlandi', f'{daraja.nomi}: {foiz}%', 'gate_test', gate_test.id, {'foiz': foiz, 'shubhali': security.shubhali})
+        check_achievements(request.user, foiz=foiz)
+        data = GateTestNatijaSerializer(natija).data
+        data['coin_qoshildi'] = coin_qoshildi
+        data['xavfsizlik_shubhali'] = security.shubhali
+        return Response(data, status=status.HTTP_201_CREATED)
 
 
 # ==================== O'QUVCHI: FINAL TEST TOPSHIRISH ====================
@@ -203,6 +226,9 @@ class FinalTestOlishView(APIView):
     permission_classes = [IsOquvchi]
 
     def get(self, request, daraja_id):
+        payment_block = require_payment_or_none(request.user)
+        if payment_block:
+            return Response({'detail': "Foydalanish muddati tugagan.", 'tolov': payment_block}, status=status.HTTP_402_PAYMENT_REQUIRED)
         try:
             daraja = Daraja.objects.select_related('fan').get(id=daraja_id)
         except Daraja.DoesNotExist:
@@ -221,6 +247,7 @@ class FinalTestOlishView(APIView):
             return Response({'detail': "Bu daraja uchun yakuniy test mavjud emas."}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = FinalTestOquvchigaSerializer(daraja.final_test)
+        log_faoliyat(request, 'final_test_boshlandi', daraja.nomi, 'final_test', daraja.final_test.id)
         return Response(serializer.data)
 
 
@@ -236,6 +263,9 @@ class FinalTestTopshirishView(APIView):
     permission_classes = [IsOquvchi]
 
     def post(self, request, daraja_id):
+        payment_block = require_payment_or_none(request.user)
+        if payment_block:
+            return Response({'detail': "Foydalanish muddati tugagan.", 'tolov': payment_block}, status=status.HTTP_402_PAYMENT_REQUIRED)
         try:
             daraja = Daraja.objects.select_related('fan').get(id=daraja_id)
         except Daraja.DoesNotExist:
@@ -269,6 +299,7 @@ class FinalTestTopshirishView(APIView):
         otish_bali = max(80, int(final_test.otish_bali_foiz or 80))
         otdi = foiz >= otish_bali
 
+        oldin_otgan = FinalTestNatija.objects.filter(oquvchi=request.user, final_test=final_test, otdi=True).exists()
         urinish_raqami = FinalTestNatija.objects.filter(
             oquvchi=request.user, final_test=final_test
         ).count() + 1
@@ -283,6 +314,7 @@ class FinalTestTopshirishView(APIView):
         )
 
         next_level = keyingi_daraja(daraja)
+        coin_qoshildi = 0
         if otdi:
             sertifikat, created = Sertifikat.objects.get_or_create(
                 oquvchi=request.user,
@@ -294,8 +326,15 @@ class FinalTestTopshirishView(APIView):
                 sertifikat.save(update_fields=['foiz'])
             natija.sertifikat = sertifikat
             natija.save(update_fields=['sertifikat'])
-            from .models import PlatformSozlama
-            coin_qoshish(request.user, PlatformSozlama.load().final_test_coin, 'final_test', f"{daraja} yakuniy testidan o'tildi")
+            if not oldin_otgan:
+                sozlama = PlatformSozlama.load()
+                coin_qoshildi = sozlama.final_test_coin
+                if urinish_raqami == 1:
+                    coin_qoshildi += sozlama.birinchi_urinish_bonus
+                if float(foiz) >= 100:
+                    coin_qoshildi += sozlama.mukammal_test_bonus
+                coin_qoshish(request.user, coin_qoshildi, 'final_test', f"{daraja} yakuniy testidan o'tildi")
+            create_notification('Sertifikat tayyor', f'{daraja.fan.nomi} — {daraja.nomi} sertifikatingiz yaratildi.', user=request.user, tur='success', link='/oquvchi/sertifikatlarim')
             log_amal(
                 request.user,
                 'daraja_tugatildi',
@@ -303,7 +342,12 @@ class FinalTestTopshirishView(APIView):
                 nishon_user=request.user,
             )
 
+        security = record_test_security(request, 'final', final_test.id, request.data.get('xavfsizlik'))
+        log_faoliyat(request, 'final_test_yakunlandi', f'{daraja.nomi}: {foiz}%', 'final_test', final_test.id, {'foiz': foiz, 'shubhali': security.shubhali})
+        check_achievements(request.user, foiz=foiz)
         data = FinalTestNatijaSerializer(natija).data
+        data['coin_qoshildi'] = coin_qoshildi
+        data['xavfsizlik_shubhali'] = security.shubhali
         data['keyingi_daraja'] = (
             {
                 'id': next_level.id,
@@ -362,7 +406,8 @@ class SertifikatTekshirishView(APIView):
         except Sertifikat.DoesNotExist:
             return Response({'detail': 'Sertifikat topilmadi.', 'haqiqiy': False}, status=status.HTTP_404_NOT_FOUND)
         data = SertifikatSerializer(sert, context={'request': request}).data
-        data['haqiqiy'] = True
+        data['haqiqiy'] = bool(sert.faol)
+        data['holat'] = 'haqiqiy' if sert.faol else 'bekor_qilingan'
         return Response(data)
 
 
@@ -375,6 +420,8 @@ class SertifikatPDFView(APIView):
             sert = Sertifikat.objects.select_related('oquvchi', 'daraja__fan').get(kod=kod)
         except Sertifikat.DoesNotExist:
             return Response({'detail': 'Sertifikat topilmadi.'}, status=status.HTTP_404_NOT_FOUND)
+        if not sert.faol:
+            return Response({'detail': 'Sertifikat bekor qilingan.'}, status=status.HTTP_410_GONE)
         from .certificate_pdf import certificate_pdf_bytes
         response = HttpResponse(certificate_pdf_bytes(sert), content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="sertifikat-{sert.kod}.pdf"'
@@ -390,6 +437,8 @@ class SertifikatQRView(APIView):
             sert = Sertifikat.objects.select_related('oquvchi', 'daraja__fan').get(kod=kod)
         except Sertifikat.DoesNotExist:
             return Response({'detail': 'Sertifikat topilmadi.'}, status=status.HTTP_404_NOT_FOUND)
+        if not sert.faol:
+            return Response({'detail': 'Sertifikat bekor qilingan.'}, status=status.HTTP_410_GONE)
         from .certificate_pdf import certificate_qr_bytes
         return HttpResponse(certificate_qr_bytes(sert), content_type='image/png')
 
@@ -488,164 +537,7 @@ class SpeakingTopshirishView(APIView):
         return Response(SpeakingNatijaSerializer(natija).data, status=status.HTTP_201_CREATED)
 
 
-# ==================== SO'Z O'YINI / COIN / SHOP ====================
-
-def _oquvchining_fani(oquvchi):
-    """O'quvchiga eng oxirgi biriktirilgan fan. UI ham aynan shu fanni ko'rsatadi."""
-    assignment = (
-        OquvchiFan.objects.filter(oquvchi=oquvchi)
-        .select_related('daraja__fan')
-        .order_by('-created_at', '-id')
-        .first()
-    )
-    return assignment.daraja.fan if assignment else None
-
-
-class SozOyiniBoshlashView(APIView):
-    """Biriktirilgan fan uchun 10 juftdan iborat 20 ta yopiq karta yaratadi."""
-    permission_classes = [IsOquvchi]
-
-    def get(self, request):
-        fan = _oquvchining_fani(request.user)
-        if not fan:
-            return Response(
-                {'detail': "Avval admin sizga fan biriktirishi kerak."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        juftliklar = list(SozJuftligi.objects.filter(fan=fan, faol=True).order_by('tartib', 'id')[:10])
-        if len(juftliklar) < 10:
-            return Response(
-                {'detail': "Bu fan uchun 10 ta so'z juftligi hali tayyor emas."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        cardlar = []
-        for juftlik in juftliklar:
-            cardlar.extend([
-                {
-                    'id': secrets.token_urlsafe(10),
-                    'matn': juftlik.chet_soz,
-                    'juftlik_id': juftlik.id,
-                    'tomon': 'chet',
-                },
-                {
-                    'id': secrets.token_urlsafe(10),
-                    'matn': juftlik.uzbek_soz,
-                    'juftlik_id': juftlik.id,
-                    'tomon': 'uzbek',
-                },
-            ])
-        random.shuffle(cardlar)
-        sessiya = SozOyiniSessiya.objects.create(
-            oquvchi=request.user,
-            fan=fan,
-            cardlar=cardlar,
-        )
-        # Frontendga juftlik identifikatori va tomoni berilmaydi: o'yinchi tarjimani o'zi topadi.
-        public_cards = [{'id': item['id'], 'matn': item['matn']} for item in cardlar]
-        return Response({
-            'token': str(sessiya.token),
-            'fan': fan.nomi,
-            'jami_juftlik': 10,
-            'har_bir_juftlik_coin': 1,
-            'cardlar': public_cards,
-        })
-
-
-class SozOyiniJuftTekshirishView(APIView):
-    """Ikki karta haqiqiy tarjima jufti ekanini tekshiradi; javoblarni oshkor qilmaydi."""
-    permission_classes = [IsOquvchi]
-
-    def post(self, request, token):
-        try:
-            sessiya = SozOyiniSessiya.objects.get(token=token, oquvchi=request.user, tugallangan=False)
-        except SozOyiniSessiya.DoesNotExist:
-            return Response({'detail': "Faol o'yin sessiyasi topilmadi."}, status=status.HTTP_404_NOT_FOUND)
-        birinchi_id = request.data.get('birinchi')
-        ikkinchi_id = request.data.get('ikkinchi')
-        if not birinchi_id or not ikkinchi_id or birinchi_id == ikkinchi_id:
-            return Response({'detail': 'Ikki xil karta yuboring.'}, status=status.HTTP_400_BAD_REQUEST)
-        kartalar = {item['id']: item for item in sessiya.cardlar}
-        birinchi = kartalar.get(birinchi_id)
-        ikkinchi = kartalar.get(ikkinchi_id)
-        if not birinchi or not ikkinchi:
-            return Response({'detail': 'Karta topilmadi.'}, status=status.HTTP_400_BAD_REQUEST)
-        togri = birinchi['juftlik_id'] == ikkinchi['juftlik_id'] and birinchi['tomon'] != ikkinchi['tomon']
-        return Response({'togri': togri})
-
-
-class SozOyiniYakunlashView(APIView):
-    """Topilgan 10 juftni serverda tekshiradi va har bir to'g'ri juft uchun 1 coin beradi."""
-    permission_classes = [IsOquvchi]
-
-    @transaction.atomic
-    def post(self, request, token):
-        try:
-            sessiya = SozOyiniSessiya.objects.select_for_update().get(token=token, oquvchi=request.user)
-        except SozOyiniSessiya.DoesNotExist:
-            return Response({'detail': "O'yin sessiyasi topilmadi."}, status=status.HTTP_404_NOT_FOUND)
-
-        if sessiya.tugallangan:
-            balans_obj, _ = OquvchiCoin.objects.get_or_create(oquvchi=request.user)
-            return Response({
-                'topilgan_soni': sessiya.topilgan_soni,
-                'berilgan_coin': sessiya.berilgan_coin,
-                'balans': balans_obj.balans,
-                'allaqachon_yakunlangan': True,
-            })
-
-        yuborilgan = request.data.get('juftliklar', [])
-        if not isinstance(yuborilgan, list):
-            return Response({'detail': "'juftliklar' ro'yxat bo'lishi kerak."}, status=status.HTTP_400_BAD_REQUEST)
-
-        kartalar = {item['id']: item for item in sessiya.cardlar}
-        ishlatilgan_cardlar = set()
-        topilgan_pairlar = set()
-
-        for item in yuborilgan:
-            if not isinstance(item, dict):
-                continue
-            birinchi_id = item.get('birinchi')
-            ikkinchi_id = item.get('ikkinchi')
-            if not birinchi_id or not ikkinchi_id:
-                continue
-            if birinchi_id in ishlatilgan_cardlar or ikkinchi_id in ishlatilgan_cardlar:
-                continue
-            birinchi = kartalar.get(birinchi_id)
-            ikkinchi = kartalar.get(ikkinchi_id)
-            if not birinchi or not ikkinchi:
-                continue
-            if birinchi['juftlik_id'] == ikkinchi['juftlik_id'] and birinchi['tomon'] != ikkinchi['tomon']:
-                ishlatilgan_cardlar.update([birinchi_id, ikkinchi_id])
-                topilgan_pairlar.add(birinchi['juftlik_id'])
-
-        topilgan_soni = min(len(topilgan_pairlar), 10)
-        if topilgan_soni < 10:
-            return Response({
-                'detail': "O'yinni yakunlash uchun barcha 10 ta tarjima juftini toping.",
-                'topilgan_soni': topilgan_soni,
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        berilgan_coin = topilgan_soni
-        sessiya.tugallangan = True
-        sessiya.topilgan_soni = topilgan_soni
-        sessiya.berilgan_coin = berilgan_coin
-        sessiya.completed_at = timezone.now()
-        sessiya.save(update_fields=['tugallangan', 'topilgan_soni', 'berilgan_coin', 'completed_at'])
-        balans_obj = coin_qoshish(
-            request.user,
-            berilgan_coin,
-            'soz_oyini',
-            f"{sessiya.fan.nomi}: {topilgan_soni} ta so'z jufti topildi",
-        )
-        return Response({
-            'topilgan_soni': topilgan_soni,
-            'berilgan_coin': berilgan_coin,
-            'balans': balans_obj.balans,
-            'xabar': f"Ajoyib! {topilgan_soni} ta juft topdingiz va {berilgan_coin} coin oldingiz.",
-        })
-
+# ==================== COIN / SHOP ====================
 
 class MeningCoinlarimView(APIView):
     """GET /api/oquvchi/coinlarim/ -> balans + so'nggi tarix"""
