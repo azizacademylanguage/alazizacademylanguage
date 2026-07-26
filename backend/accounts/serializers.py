@@ -1,9 +1,10 @@
 from django.contrib.auth import get_user_model
-from django.db import transaction
+from django.db import IntegrityError, DatabaseError, transaction
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from courses.models import Daraja, OquvchiFan
+from .db_utils import is_primary_key_collision, reset_model_sequences
 from courses.utils import toza_daraja_nomi
 from .models import Filial
 
@@ -203,19 +204,56 @@ class AdminOquvchiSerializer(OquvchiAssignmentMixin, serializers.ModelSerializer
         ]
         read_only_fields = ['created_at']
 
+    def validate_username(self, value):
+        value = (value or '').strip()
+        if not value:
+            raise serializers.ValidationError('Login majburiy.')
+        queryset = User.objects.filter(username__iexact=value)
+        if self.instance:
+            queryset = queryset.exclude(pk=self.instance.pk)
+        if queryset.exists():
+            raise serializers.ValidationError('Bu login avval ishlatilgan. Boshqa login kiriting.')
+        return value
+
     def validate(self, attrs):
         if self.instance is None and not attrs.get('password'):
             raise serializers.ValidationError({'password': 'Parol majburiy.'})
         return attrs
 
-    @transaction.atomic
-    def create(self, validated_data):
-        daraja = validated_data.pop('daraja')
-        password = validated_data.pop('password')
+    def _default_filial(self, admin, requested_filial=None):
+        """Student must belong to a branch for manager/shop visibility.
+
+        The current form does not require a branch selector, so use the chosen
+        branch, then the admin's branch, then the first branch. If the database
+        is empty, create the standard main branch automatically.
+        """
+        if requested_filial:
+            return requested_filial
+        if admin.filial_id:
+            return admin.filial
+        existing = Filial.objects.order_by('id').first()
+        if existing:
+            return existing
+        filial, _ = Filial.objects.get_or_create(
+            nomi='Asosiy filial',
+            defaults={'manzil': 'Toshkent'},
+        )
+        return filial
+
+    def _create_once(self, validated_data):
+        data = dict(validated_data)
+        daraja = data.pop('daraja')
+        password = data.pop('password')
         admin = self.context['request'].user
-        user = User(**validated_data, role=User.ROLE_OQUVCHI, yaratgan=admin)
-        user.set_password(password)
-        user.save()
+        data['filial'] = self._default_filial(admin, data.get('filial'))
+
+        user = User.objects.create_user(
+            password=password,
+            role=User.ROLE_OQUVCHI,
+            yaratgan=admin,
+            is_active=True,
+            **data,
+        )
         OquvchiFan.objects.create(
             oquvchi=user,
             daraja=daraja,
@@ -223,6 +261,30 @@ class AdminOquvchiSerializer(OquvchiAssignmentMixin, serializers.ModelSerializer
             qolda_ochilgan=True,
         )
         return user
+
+    def create(self, validated_data):
+        # A restored/imported PostgreSQL database can have stale sequences.
+        # Retry once after synchronising the relevant sequences.
+        for attempt in range(2):
+            try:
+                with transaction.atomic():
+                    return self._create_once(validated_data)
+            except IntegrityError as exc:
+                if attempt == 0 and is_primary_key_collision(exc):
+                    reset_model_sequences([User, Filial, OquvchiFan])
+                    continue
+                message = str(exc).lower()
+                if 'username' in message or 'users_username' in message:
+                    raise serializers.ValidationError({'username': 'Bu login avval ishlatilgan.'}) from exc
+                raise serializers.ValidationError({
+                    'detail': "O'quvchini saqlashda baza cheklovi xatosi. Railway migratsiyasini qayta deploy qiling."
+                }) from exc
+            except DatabaseError as exc:
+                raise serializers.ValidationError({
+                    'detail': f"O'quvchini saqlashda ma'lumotlar bazasi xatosi: {exc.__class__.__name__}."
+                }) from exc
+
+        raise serializers.ValidationError({'detail': "O'quvchini yaratib bo'lmadi."})
 
     @transaction.atomic
     def update(self, instance, validated_data):
@@ -232,6 +294,8 @@ class AdminOquvchiSerializer(OquvchiAssignmentMixin, serializers.ModelSerializer
             setattr(instance, attr, value)
         if password:
             instance.set_password(password)
+        if not instance.filial_id:
+            instance.filial = self._default_filial(self.context['request'].user)
         instance.save()
 
         if daraja:
@@ -244,3 +308,4 @@ class AdminOquvchiSerializer(OquvchiAssignmentMixin, serializers.ModelSerializer
                 qolda_ochilgan=True,
             )
         return instance
+

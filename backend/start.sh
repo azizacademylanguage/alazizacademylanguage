@@ -15,6 +15,7 @@ maintenance() {
     log "Database tayyorlash urinishi ${attempt}/${max_attempts}"
 
     if python manage.py migrate --noinput \
+      && python manage.py repair_database \
       && python manage.py ensure_admin --force; then
       log "Migratsiya va admin tayyor"
 

@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework import generics, status, viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -14,6 +16,7 @@ from .serializers import (
 from .permissions import IsAdmin, IsNazoratchi
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 class LoginView(TokenObtainPairView):
@@ -80,6 +83,20 @@ class AdminOquvchiViewSet(viewsets.ModelViewSet):
         context = super().get_serializer_context()
         context['request'] = self.request
         return context
+
+    def create(self, request, *args, **kwargs):
+        try:
+            return super().create(request, *args, **kwargs)
+        except Exception as exc:
+            # Password is never written to logs. Unexpected production errors
+            # become visible in Railway logs with a stable error code.
+            logger.exception(
+                "ADMIN_STUDENT_CREATE_FAILED username=%s daraja=%s error=%s",
+                request.data.get('username', ''),
+                request.data.get('daraja', ''),
+                exc.__class__.__name__,
+            )
+            raise
 
 
 class AdminStatistikaView(APIView):

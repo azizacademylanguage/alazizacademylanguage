@@ -1,0 +1,18 @@
+O'QUVCHI YARATISH 500 XATOSI TUZATILDI
+
+Tuzatishlar:
+- Admin yaratgan o'quvchiga filial avtomatik biriktiriladi.
+- PostgreSQL users va boshqa jadvallarning ID sequence qiymatlari deployda tuzatiladi.
+- Eski bazadagi users.filial_id va users.yaratgan_id NOT NULL cheklovlari xavfsiz olib tashlanadi.
+- Login takrorlansa 500 emas, tushunarli 400 xabar qaytadi.
+- O'quvchi User.objects.create_user orqali to'g'ri parol bilan yaratiladi.
+- Railway logida kutilmagan xato ADMIN_STUDENT_CREATE_FAILED kodi bilan ko'rinadi.
+
+GitHub'ga push:
+git add .
+git commit -m "Oquvchi yaratish 500 xatosi tuzatildi"
+git push origin main
+
+Railway avtomatik deploydan so'ng logda quyidagilar chiqadi:
+Applying accounts.0003_repair_legacy_user_table... OK
+DB_REPAIR_READY sequences=...

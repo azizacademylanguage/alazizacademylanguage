@@ -10,6 +10,20 @@ import { useToast } from '../../context/ToastContext';
 import { BookOpen, GraduationCap, KeyRound, Plus, Search, Trash2, UserPlus } from 'lucide-react';
 import { cleanLevelName } from '../../utils/course';
 
+
+const firstErrorMessage = (data) => {
+  if (!data) return '';
+  if (typeof data === 'string') return data;
+  if (Array.isArray(data)) return firstErrorMessage(data[0]);
+  if (typeof data === 'object') {
+    for (const value of Object.values(data)) {
+      const message = firstErrorMessage(value);
+      if (message) return message;
+    }
+  }
+  return '';
+};
+
 const emptyForm = {
   ism: '',
   familya: '',
@@ -93,12 +107,12 @@ export default function OquvchilarPage() {
       load();
     } catch (err) {
       const data = err.response?.data;
+      const status = err.response?.status;
       setError(
-        data?.username?.[0]
-        || data?.password?.[0]
-        || data?.daraja?.[0]
-        || data?.detail
-        || "O'quvchini yaratishda xatolik yuz berdi."
+        firstErrorMessage(data)
+        || (status === 500
+          ? "Server bazasida xatolik bor. Yangi backend versiyasini Railway'ga deploy qiling."
+          : "O'quvchini yaratishda xatolik yuz berdi.")
       );
     } finally {
       setSaving(false);
