@@ -260,9 +260,10 @@ export default function OquvchilarPage() {
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.muddat_bloklash} onChange={(event) => setForm({ ...form, muddat_bloklash: event.target.checked })} /> Muddat tugaganda darslarni qulflash</label>
 
           {fanlar.every((fan) => !fan.darajalar?.length) && (
-            <p className="text-xs px-3 py-2.5 rounded-xl" style={{ background: 'var(--color-amber-light)', color: '#8A5A1A' }}>
-              Tayyor fan va mavzularni bazaga joylash uchun backendda: py manage.py seed_languages
-            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3 py-2.5 rounded-xl" style={{ background: 'var(--color-amber-light)', color: '#8A5A1A' }}>
+              <p className="text-xs">Fanlar hali backenddan kelmadi. Railway yangi deployni tugatgach ro'yxatni qayta yuklang.</p>
+              <button type="button" onClick={load} className="text-xs font-semibold underline underline-offset-2 shrink-0">Qayta yuklash</button>
+            </div>
           )}
 
           {error && <p className="text-sm px-3 py-2.5 rounded-xl" style={{ background: '#FBEAE8', color: 'var(--color-red)' }}>{error}</p>}

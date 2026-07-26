@@ -332,60 +332,125 @@ class Command(BaseCommand):
             help="Faqat fanlar, darajalar, testlar, so'zlar va do'kon mahsulotlarini yaratadi.",
         )
 
-    @transaction.atomic
     def handle(self, *args, **options):
         catalog_only = options.get('catalog_only', False)
-        admin = None if catalog_only else self._create_users()
-        created_levels = []
-        created_topics = 0
 
-        for fan_order, (fan_name, data) in enumerate(COURSES.items(), start=1):
-            fan = self._get_or_create_fan(fan_name, data, fan_order)
-            self._create_word_game_words(fan, data['words'])
+        # Eng muhim qism avval alohida commit qilinadi. Listening, speaking,
+        # test yoki do'kon jadvallaridan biri eski Railway bazasida vaqtincha
+        # tayyor bo'lmasa ham fanlar va darajalar admin panelda ko'rinadi.
+        created_levels, created_topics = self._seed_core_catalog()
 
-            for level_order, (level_name, topics) in enumerate(data['levels'].items(), start=1):
-                level = self._get_or_create_level(fan, level_name, level_order)
-                created_levels.append(level)
-                for topic_order, topic_name in enumerate(topics, start=1):
-                    self._create_topic_content(
-                        level=level,
-                        topic_name=topic_name,
-                        topic_order=topic_order,
-                        words=data['words'],
-                        lang_code=data['lang_code'],
-                        speaking_text=data['speaking'],
-                        is_language=data.get('is_language', False),
-                    )
-                    created_topics += 1
-                self._create_final_test(level, topics, data['words'], data.get('is_language', False))
-
-        self._create_shop_items()
-
+        admin = None
+        optional_errors = []
         if not catalog_only:
-            demo = User.objects.get(username='oquvchi1')
-            english_beginner = Daraja.objects.get(fan__nomi='English', nomi='Beginner')
-            OquvchiFan.objects.filter(oquvchi=demo).delete()
-            OquvchiFan.objects.create(
-                oquvchi=demo,
-                daraja=english_beginner,
-                biriktirgan=admin,
-                qolda_ochilgan=True,
-            )
-            Bildirishnoma.objects.get_or_create(
-                oquvchi=demo,
-                sarlavha='Platformaga xush kelibsiz!',
-                defaults={
-                    'matn': 'Bugungi shaxsiy rejangizni oching, listening va speaking mashqlarini bajaring.',
-                    'tur': 'info',
-                    'havola': '/oquvchi',
-                },
-            )
+            try:
+                admin = self._create_users()
+            except Exception as exc:  # pragma: no cover - production schema himoyasi
+                optional_errors.append(f"demo foydalanuvchilar: {exc}")
+                self.stderr.write(self.style.WARNING(
+                    f"Demo foydalanuvchilar yaratilmadi, katalog saqlandi: {exc}"
+                ))
 
+        # Qo'shimcha kontent har bir fan bo'yicha alohida transactionda.
+        # Bir fan xato bersa, qolgan fanlar davom etadi va core katalog yo'qolmaydi.
+        for fan_name, data in COURSES.items():
+            try:
+                with transaction.atomic():
+                    fan = Fan.objects.get(nomi=fan_name)
+                    self._create_word_game_words(fan, data['words'])
+                    for level_name, topics in data['levels'].items():
+                        level = Daraja.objects.get(fan=fan, nomi=level_name)
+                        for topic_order, topic_name in enumerate(topics, start=1):
+                            self._create_topic_content(
+                                level=level,
+                                topic_name=topic_name,
+                                topic_order=topic_order,
+                                words=data['words'],
+                                lang_code=data['lang_code'],
+                                speaking_text=data['speaking'],
+                                is_language=data.get('is_language', False),
+                            )
+                        self._create_final_test(level, topics, data['words'], data.get('is_language', False))
+            except Exception as exc:  # pragma: no cover - legacy Railway schema himoyasi
+                optional_errors.append(f"{fan_name}: {exc}")
+                self.stderr.write(self.style.WARNING(
+                    f"{fan_name} qo'shimcha test/audio kontenti vaqtincha o'tkazib yuborildi: {exc}"
+                ))
+
+        try:
+            self._create_shop_items()
+        except Exception as exc:  # pragma: no cover
+            optional_errors.append(f"do'kon: {exc}")
+            self.stderr.write(self.style.WARNING(f"Do'kon mahsulotlari yaratilmadi: {exc}"))
+
+        if not catalog_only and admin is not None:
+            try:
+                demo = User.objects.get(username='oquvchi1')
+                english_beginner = Daraja.objects.get(fan__nomi='English', nomi='Beginner')
+                OquvchiFan.objects.filter(oquvchi=demo).delete()
+                OquvchiFan.objects.create(
+                    oquvchi=demo,
+                    daraja=english_beginner,
+                    biriktirgan=admin,
+                    qolda_ochilgan=True,
+                )
+                Bildirishnoma.objects.get_or_create(
+                    oquvchi=demo,
+                    sarlavha='Platformaga xush kelibsiz!',
+                    defaults={
+                        'matn': 'Bugungi shaxsiy rejangizni oching, listening va speaking mashqlarini bajaring.',
+                        'tur': 'info',
+                        'havola': '/oquvchi',
+                    },
+                )
+            except Exception as exc:  # pragma: no cover
+                optional_errors.append(f"demo biriktirish: {exc}")
+                self.stderr.write(self.style.WARNING(f"Demo fan biriktirish o'tkazib yuborildi: {exc}"))
+
+        fan_count = Fan.objects.filter(nomi__in=COURSES.keys()).count()
+        level_count = Daraja.objects.filter(fan__nomi__in=COURSES.keys()).count()
+        topic_count = Mavzu.objects.filter(daraja__fan__nomi__in=COURSES.keys()).count()
         self.stdout.write(self.style.SUCCESS(
-            f"Tayyor: {len(COURSES)} ta fan, {len(created_levels)} ta daraja va {created_topics} ta mavzu yaratildi yoki yangilandi."
+            f"KATALOG_READY: {fan_count} ta fan, {level_count} ta daraja va {topic_count} ta mavzu bazada tayyor."
         ))
+        if optional_errors:
+            self.stdout.write(self.style.WARNING(
+                f"Core katalog saqlandi. Qo'shimcha kontentda {len(optional_errors)} ta ogohlantirish bor."
+            ))
+        else:
+            self.stdout.write(self.style.SUCCESS('TEST_AUDIO_CONTENT_READY'))
         if not catalog_only:
             self.stdout.write('Loginlar: admin/admin12345, nazoratchi1/naz12345, oquvchi1/stud12345')
+
+    def _seed_core_catalog(self):
+        created_levels = []
+        created_topics = 0
+        for fan_order, (fan_name, data) in enumerate(COURSES.items(), start=1):
+            with transaction.atomic():
+                fan = self._get_or_create_fan(fan_name, data, fan_order)
+                for level_order, (level_name, topics) in enumerate(data['levels'].items(), start=1):
+                    level = self._get_or_create_level(fan, level_name, level_order)
+                    created_levels.append(level)
+                    for topic_order, topic_name in enumerate(topics, start=1):
+                        topic, _ = Mavzu.objects.update_or_create(
+                            daraja=level,
+                            tartib=topic_order,
+                            defaults={'nomi': topic_name},
+                        )
+                        Dars.objects.update_or_create(
+                            mavzu=topic,
+                            tartib=1,
+                            defaults={
+                                'sarlavha': topic_name,
+                                'tushuntirish_matn': (
+                                    f"{topic_name} — {fan_name} fanining {level_name} bosqichidagi mavzu. "
+                                    "Tushuntirishni o'qing va keyingi bosqich uchun kamida 80% natija oling."
+                                ),
+                                'misollar': '',
+                            },
+                        )
+                        created_topics += 1
+        return created_levels, created_topics
 
     def _create_word_game_words(self, fan, words):
         for order, (term, meaning) in enumerate(words[:10], start=1):

@@ -1,0 +1,15 @@
+FANLAR CHIQMASLIGI TUZATILDI
+
+1. Yangi courses.0003 migration Railway bazasiga 11 ta fan, 29 ta daraja va 103 ta mavzuni avtomatik joylaydi.
+2. Endi seed_languages umumiy transactionda rollback bo'lmaydi. Test/audio jadvali xato bersa ham fan, daraja va mavzular saqlanib qoladi.
+3. Admin fanlar API pagination qilinmaydi va barcha fanlarni darajalari bilan qaytaradi.
+4. O'quvchi yaratish oynasida fanlar kelmasa Qayta yuklash tugmasi ko'rinadi.
+
+GitHub'ga push qiling. Railway logida quyidagini kuting:
+Applying courses.0003_seed_core_catalog... OK
+KATALOG_READY: 11 ta fan, 29 ta daraja va 103 ta mavzu bazada tayyor.
+
+Lokal ishga tushirish:
+py manage.py migrate
+py manage.py seed_languages --catalog-only
+py manage.py runserver

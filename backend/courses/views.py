@@ -18,7 +18,8 @@ from .serializers import (
 class FanViewSet(viewsets.ModelViewSet):
     """GET ochiq hammaga (o'quvchi ham ko'rishi kerak bo'lishi mumkin), lekin
     yozish faqat Admin uchun."""
-    queryset = Fan.objects.all().order_by('tartib')
+    queryset = Fan.objects.prefetch_related('darajalar').all().order_by('tartib')
+    pagination_class = None
 
     def get_serializer_class(self):
         if self.action == 'list':
