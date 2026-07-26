@@ -35,7 +35,19 @@ class User(AbstractUser):
     # Modelda ham default bilan saqlansa yangi foydalanuvchi yaratishda NULL
     # yuborilmaydi va eski tokenlarni bekor qilish uchun foydalanish mumkin.
     token_version = models.PositiveIntegerField(default=0)
+    TARIF_CHOICES = (('standard', 'Standard'), ('premium', 'Premium'), ('vip', 'VIP'))
+    TOLOV_CHOICES = (('tolangan', "To'langan"), ('kutilmoqda', 'Kutilmoqda'), ('qarzdor', 'Qarzdor'))
+    tarif = models.CharField(max_length=20, choices=TARIF_CHOICES, default='standard')
+    tolov_holati = models.CharField(max_length=20, choices=TOLOV_CHOICES, default='kutilmoqda')
+    obuna_boshlanishi = models.DateField(null=True, blank=True)
+    obuna_tugashi = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def obuna_faol(self):
+        from django.utils import timezone
+        return self.faol and (not self.obuna_tugashi or self.obuna_tugashi >= timezone.localdate())
+
 
     class Meta:
         db_table = 'users'

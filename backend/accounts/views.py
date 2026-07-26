@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth import get_user_model
 from django.db import DatabaseError
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count, Q, Sum
 
 from .models import Filial
 from .serializers import (
@@ -204,3 +204,52 @@ class NazoratchiStatistikaView(APIView):
             'jami_urinishlar': natijalar.count(),
             'ortacha_foiz': round(float(ortacha), 2),
         })
+
+
+class KengaytirilganStatistikaView(APIView):
+    permission_classes = [IsAdmin]
+    def get(self, request):
+        from django.utils import timezone
+        from datetime import timedelta
+        from exams.models import MashqNatija, ListeningNatija, SpeakingNatija, WritingNatija, Sertifikat, CoinTarix
+        students = User.objects.filter(role=User.ROLE_OQUVCHI)
+        today = timezone.localdate()
+        week = timezone.now() - timedelta(days=7)
+        inactive = students.exclude(last_login__gte=week)
+        expiring = students.filter(obuna_tugashi__range=(today, today + timedelta(days=5)))
+        by_level = list(students.values('biriktirilgan_fanlar__daraja__nomi').annotate(soni=Count('id')).order_by('-soni')[:15])
+        return Response({
+            'faol_7_kun': students.filter(last_login__gte=week).count(),
+            'faol_emas_7_kun': inactive.count(),
+            'muddati_5_kunda_tugaydi': expiring.count(),
+            'qarzdorlar': students.filter(tolov_holati='qarzdor').count(),
+            'mashq_ortacha': round(float(MashqNatija.objects.aggregate(v=Avg('foiz'))['v'] or 0),2),
+            'listening_ortacha': round(float(ListeningNatija.objects.aggregate(v=Avg('foiz'))['v'] or 0),2),
+            'speaking_ortacha': round(float(SpeakingNatija.objects.aggregate(v=Avg('ai_foiz'))['v'] or 0),2),
+            'writing_ortacha': round(float(WritingNatija.objects.aggregate(v=Avg('ai_foiz'))['v'] or 0),2),
+            'sertifikatlar': Sertifikat.objects.count(),
+            'coin_aylanmasi': CoinTarix.objects.aggregate(v=Sum('miqdor'))['v'] or 0,
+            'darajalar_kesimida': by_level,
+            'etibor_talab_qiladi': [{'id':u.id,'ism':u.full_name,'login':u.username,'oxirgi_kirish':u.last_login} for u in inactive[:20]],
+        })
+
+class ReytingView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        from django.db.models import Sum, Max
+        from exams.models import MashqNatija, ListeningNatija, SpeakingNatija, WritingNatija, CoinTarix
+        qs=User.objects.filter(role=User.ROLE_OQUVCHI, faol=True)
+        if request.user.role == User.ROLE_NAZORATCHI:
+            qs=qs.filter(filial=request.user.filial)
+        rows=[]
+        for u in qs.select_related('filial'):
+            test=float(MashqNatija.objects.filter(oquvchi=u).aggregate(v=Max('foiz'))['v'] or 0)
+            listen=float(ListeningNatija.objects.filter(oquvchi=u).aggregate(v=Max('foiz'))['v'] or 0)
+            speak=float(SpeakingNatija.objects.filter(oquvchi=u).aggregate(v=Max('ai_foiz'))['v'] or 0)
+            write=float(WritingNatija.objects.filter(oquvchi=u).aggregate(v=Max('ai_foiz'))['v'] or 0)
+            coin=CoinTarix.objects.filter(oquvchi=u).aggregate(v=Sum('miqdor'))['v'] or 0
+            ball=round(test+listen+speak+write+max(0,coin),2)
+            rows.append({'id':u.id,'ism':u.full_name,'filial':u.filial.nomi if u.filial else '—','ball':ball,'test':test,'listening':listen,'speaking':speak,'writing':write,'coin':coin})
+        rows=sorted(rows,key=lambda x:x['ball'],reverse=True)
+        for i,row in enumerate(rows,1): row['orin']=i
+        return Response(rows[:100])

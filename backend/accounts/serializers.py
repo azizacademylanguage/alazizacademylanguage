@@ -234,9 +234,9 @@ class AdminOquvchiSerializer(OquvchiAssignmentMixin, serializers.ModelSerializer
         model = User
         fields = [
             'id', 'username', 'password', 'ism', 'familya', 'filial', 'filial_nomi',
-            'faol', 'created_at', 'daraja', 'tanlangan_daraja', 'daraja_nomi', 'fan_id', 'fan_nomi',
+            'faol', 'tarif', 'tolov_holati', 'obuna_boshlanishi', 'obuna_tugashi', 'obuna_faol', 'created_at', 'daraja', 'tanlangan_daraja', 'daraja_nomi', 'fan_id', 'fan_nomi',
         ]
-        read_only_fields = ['created_at']
+        read_only_fields = ['created_at', 'obuna_faol']
 
     def validate_username(self, value):
         value = (value or '').strip()

@@ -18,6 +18,9 @@ import AdminShopPage from './pages/admin/AdminShopPage';
 import HisobotlarPage from './pages/admin/HisobotlarPage';
 import AmalLoglariPage from './pages/admin/AmalLoglariPage';
 import AdminSertifikatlarPage from './pages/admin/SertifikatlarPage';
+import KengaytirilganStatistikaPage from './pages/admin/KengaytirilganStatistikaPage';
+import KontentBackupPage from './pages/admin/KontentBackupPage';
+import ReytingPage from './pages/shared/ReytingPage';
 
 import NazoratchiLayout from './pages/nazoratchi/NazoratchiLayout';
 import NazoratchiDashboard from './pages/nazoratchi/NazoratchiDashboard';
@@ -72,6 +75,9 @@ export default function App() {
             <Route path="hisobotlar" element={<HisobotlarPage />} />
             <Route path="amal-loglari" element={<AmalLoglariPage />} />
             <Route path="sertifikatlar" element={<AdminSertifikatlarPage />} />
+            <Route path="kengaytirilgan-statistika" element={<KengaytirilganStatistikaPage />} />
+            <Route path="reyting" element={<ReytingPage />} />
+            <Route path="kontent-backup" element={<KontentBackupPage />} />
           </Route>
 
           {/* NAZORATCHI */}
@@ -96,6 +102,7 @@ export default function App() {
             <Route path="bildirishnomalar" element={<BildirishnomalarPage />} />
             <Route path="soz-oyini" element={<SozOyiniPage />} />
             <Route path="shop" element={<ShopPage />} />
+            <Route path="reyting" element={<ReytingPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -31,6 +31,10 @@ const emptyForm = {
   password: '',
   fan: '',
   daraja: '',
+  tarif: 'standard',
+  tolov_holati: 'kutilmoqda',
+  obuna_boshlanishi: '',
+  obuna_tugashi: '',
 };
 
 export default function OquvchilarPage() {
@@ -100,6 +104,10 @@ export default function OquvchilarPage() {
         username: form.username,
         password: form.password,
         daraja: Number(form.daraja),
+        tarif: form.tarif,
+        tolov_holati: form.tolov_holati,
+        obuna_boshlanishi: form.obuna_boshlanishi || null,
+        obuna_tugashi: form.obuna_tugashi || null,
       });
       setModalOpen(false);
       setForm(emptyForm);
@@ -190,6 +198,8 @@ export default function OquvchilarPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge tone="forest"><BookOpen size={11} className="mr-1" />{student.fan_nomi || 'Fan tanlanmagan'}</Badge>
                     <Badge tone="success">{cleanLevelName(student.daraja_nomi) || 'Daraja tanlanmagan'}</Badge>
+                    <Badge>{student.tarif || 'standard'}</Badge>
+                    <Badge tone={student.tolov_holati === 'tolangan' ? 'success' : 'warning'}>{student.tolov_holati || 'kutilmoqda'}</Badge>
                   </div>
                 </div>
                 <IconButton icon={Trash2} tone="danger" title="O'chirish" onClick={() => handleDelete(student)} />
@@ -225,6 +235,18 @@ export default function OquvchilarPage() {
               <option value="">Daraja tanlang</option>
               {darajalar.map((daraja) => <option key={daraja.id} value={daraja.id}>{cleanLevelName(daraja.nomi)}</option>)}
             </Select>
+          </div>
+
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Select label="Tarif" value={form.tarif} onChange={(event) => setForm({ ...form, tarif: event.target.value })}>
+              <option value="standard">Standard</option><option value="premium">Premium</option><option value="vip">VIP</option>
+            </Select>
+            <Select label="To'lov holati" value={form.tolov_holati} onChange={(event) => setForm({ ...form, tolov_holati: event.target.value })}>
+              <option value="kutilmoqda">Kutilmoqda</option><option value="tolangan">To'langan</option><option value="qarzdor">Qarzdor</option>
+            </Select>
+            <Input label="Boshlanish sanasi" type="date" value={form.obuna_boshlanishi} onChange={(event) => setForm({ ...form, obuna_boshlanishi: event.target.value })} />
+            <Input label="Tugash sanasi" type="date" value={form.obuna_tugashi} onChange={(event) => setForm({ ...form, obuna_tugashi: event.target.value })} />
           </div>
 
           {fanlar.every((fan) => !fan.darajalar?.length) && (
