@@ -283,6 +283,7 @@ class WritingNatija(models.Model):
     ai_foiz = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     ai_izoh = models.TextField(blank=True, help_text="AI tomonidan berilgan qisqa fikr-mulohaza")
     ai_xatolar = models.JSONField(default=list, blank=True, help_text="Aniqlangan grammatik xatolar ro'yxati")
+    baholash_tafsiloti = models.JSONField(default=dict, blank=True)
     baholanmoqda = models.BooleanField(default=True)  # AI hali javob bermagan bo'lsa True
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -467,6 +468,11 @@ class AdminAmalLog(models.Model):
         User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
         help_text="Amal kimga nisbatan bajarilgan (masalan qaysi o'quvchi)"
     )
+    obyekt_turi = models.CharField(max_length=80, blank=True)
+    obyekt_id = models.CharField(max_length=80, blank=True)
+    ip_manzil = models.GenericIPAddressField(null=True, blank=True)
+    oldingi_holat = models.JSONField(default=dict, blank=True)
+    yangi_holat = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -569,3 +575,33 @@ class Bildirishnoma(models.Model):
 
     def __str__(self):
         return f"{self.oquvchi} - {self.sarlavha}"
+
+
+# ==================== REYTING VA MUSOBAQA ====================
+
+class Musobaqa(models.Model):
+    STATUS_REJA = 'reja'
+    STATUS_FAOL = 'faol'
+    STATUS_YAKUN = 'yakun'
+    STATUS_CHOICES = ((STATUS_REJA, 'Rejada'), (STATUS_FAOL, 'Faol'), (STATUS_YAKUN, 'Yakunlangan'))
+
+    nomi = models.CharField(max_length=180)
+    tavsif = models.TextField(blank=True)
+    boshlanish_sana = models.DateField()
+    tugash_sana = models.DateField()
+    fan = models.ForeignKey('courses.Fan', on_delete=models.SET_NULL, null=True, blank=True, related_name='musobaqalar')
+    filial = models.ForeignKey('accounts.Filial', on_delete=models.SET_NULL, null=True, blank=True, related_name='musobaqalar')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_REJA)
+    birinchi_coin = models.PositiveIntegerField(default=100)
+    ikkinchi_coin = models.PositiveIntegerField(default=60)
+    uchinchi_coin = models.PositiveIntegerField(default=30)
+    goliblar = models.JSONField(default=list, blank=True)
+    yaratgan = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='yaratgan_musobaqalar')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'musobaqalar'
+        ordering = ['-boshlanish_sana', '-id']
+
+    def __str__(self):
+        return self.nomi

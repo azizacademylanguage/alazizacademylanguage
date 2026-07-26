@@ -48,9 +48,15 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         if user.role == User.ROLE_OQUVCHI:
             try:
                 from exams.engagement import faollik_qayd_et
+                from exams.models import Bildirishnoma
+                from django.utils import timezone
                 faollik_qayd_et(user, 'kirish')
+                if user.qolgan_kun is not None and user.qolgan_kun <= 5:
+                    title = "Foydalanish muddati tugagan" if user.qolgan_kun < 0 else "Foydalanish muddati tugamoqda"
+                    message = "Darslarni davom ettirish uchun admin bilan bog'laning." if user.qolgan_kun < 0 else f"Platformadan foydalanish muddatiga {user.qolgan_kun} kun qoldi."
+                    if not Bildirishnoma.objects.filter(oquvchi=user, sarlavha=title, created_at__date=timezone.localdate()).exists():
+                        Bildirishnoma.objects.create(oquvchi=user, sarlavha=title, matn=message, tur=Bildirishnoma.TUR_WARNING)
             except Exception:
-                # Login migratsiya yoki vaqtinchalik DB muammosi sabab to'xtab qolmasin.
                 pass
         data['user'] = {
             'id': user.id,
@@ -60,6 +66,13 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
             'familya': user.familya,
             'full_name': user.full_name,
             'filial': FilialSerializer(user.filial).data if user.filial else None,
+            'tarif': user.tarif,
+            'boshlanish_sana': user.boshlanish_sana,
+            'tugash_sana': user.tugash_sana,
+            'tolov_holati': user.tolov_holati,
+            'obuna_holati': user.obuna_holati,
+            'qolgan_kun': user.qolgan_kun,
+            'muddat_tugagan': user.muddat_tugagan,
         }
         return data
 
@@ -70,7 +83,9 @@ class UserMeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'role', 'ism', 'familya', 'full_name', 'filial', 'faol', 'created_at']
+        fields = ['id', 'username', 'role', 'ism', 'familya', 'full_name', 'filial', 'faol', 'created_at',
+                  'tarif', 'boshlanish_sana', 'tugash_sana', 'tolov_holati', 'obuna_holati',
+                  'qolgan_kun', 'muddat_tugagan', 'muddat_bloklash']
 
 
 class NazoratchiSerializer(serializers.ModelSerializer):
@@ -169,11 +184,24 @@ class OquvchiSerializer(OquvchiAssignmentMixin, serializers.ModelSerializer):
     daraja_nomi = serializers.SerializerMethodField()
     fan_id = serializers.SerializerMethodField()
     fan_nomi = serializers.SerializerMethodField()
+    tarif = serializers.CharField(read_only=True)
+    tolov_holati = serializers.ChoiceField(
+        choices=['tolangan', 'tolanmagan', 'qarzdor', 'kutilmoqda'],
+        required=False,
+    )
+    obuna_holati = serializers.ReadOnlyField()
+    qolgan_kun = serializers.ReadOnlyField()
+    muddat_tugagan = serializers.ReadOnlyField()
+
+    def validate_tolov_holati(self, value):
+        return User.TOLOV_TOLANMAGAN if value in {'tolanmagan', 'qarzdor', 'kutilmoqda'} else User.TOLOV_TOLANGAN
 
     class Meta:
         model = User
         fields = ['id', 'username', 'password', 'ism', 'familya', 'filial', 'filial_nomi',
-                  'faol', 'created_at', 'daraja', 'tanlangan_daraja', 'daraja_nomi', 'fan_id', 'fan_nomi']
+                  'faol', 'created_at', 'daraja', 'tanlangan_daraja', 'daraja_nomi', 'fan_id', 'fan_nomi',
+                  'tarif', 'boshlanish_sana', 'tugash_sana', 'tolov_holati', 'muddat_bloklash',
+                  'obuna_holati', 'qolgan_kun', 'muddat_tugagan']
         read_only_fields = ['filial']
 
     @transaction.atomic
@@ -229,14 +257,27 @@ class AdminOquvchiSerializer(OquvchiAssignmentMixin, serializers.ModelSerializer
     fan_id = serializers.SerializerMethodField()
     fan_nomi = serializers.SerializerMethodField()
     filial_nomi = serializers.CharField(source='filial.nomi', read_only=True)
+    tarif = serializers.CharField(read_only=True)
+    tolov_holati = serializers.ChoiceField(
+        choices=['tolangan', 'tolanmagan', 'qarzdor', 'kutilmoqda'],
+        required=False,
+    )
+    obuna_holati = serializers.ReadOnlyField()
+    qolgan_kun = serializers.ReadOnlyField()
+    muddat_tugagan = serializers.ReadOnlyField()
+
+    def validate_tolov_holati(self, value):
+        return User.TOLOV_TOLANMAGAN if value in {'tolanmagan', 'qarzdor', 'kutilmoqda'} else User.TOLOV_TOLANGAN
 
     class Meta:
         model = User
         fields = [
             'id', 'username', 'password', 'ism', 'familya', 'filial', 'filial_nomi',
-            'faol', 'tarif', 'tolov_holati', 'obuna_boshlanishi', 'obuna_tugashi', 'obuna_faol', 'created_at', 'daraja', 'tanlangan_daraja', 'daraja_nomi', 'fan_id', 'fan_nomi',
+            'faol', 'created_at', 'daraja', 'tanlangan_daraja', 'daraja_nomi', 'fan_id', 'fan_nomi',
+            'tarif', 'boshlanish_sana', 'tugash_sana', 'tolov_holati', 'muddat_bloklash',
+            'obuna_holati', 'qolgan_kun', 'muddat_tugagan',
         ]
-        read_only_fields = ['created_at', 'obuna_faol']
+        read_only_fields = ['created_at']
 
     def validate_username(self, value):
         value = (value or '').strip()

@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { eksportUsersCSV, eksportNatijalarCSV, importUsersCSV } from '../../api/adminExtra';
+import { eksportUsersCSV, eksportNatijalarCSV, importUsersCSV, eksportKontentExcel, importKontentExcel, backupYuklabOlish, backupTiklash } from '../../api/adminExtra';
 import { Card, Button } from '../../components/ui';
-import { Download, Upload, Users, ClipboardCheck, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Download, Upload, Users, ClipboardCheck, CheckCircle2, AlertCircle, FileSpreadsheet, Database } from 'lucide-react';
 
 export default function HisobotlarPage() {
   const [yuklanmoqda, setYuklanmoqda] = useState('');
   const [importNatija, setImportNatija] = useState(null);
   const [importXato, setImportXato] = useState('');
+  const [excelNatija, setExcelNatija] = useState(null);
+  const [backupNatija, setBackupNatija] = useState(null);
 
   const handleExport = async (turi) => {
     setYuklanmoqda(turi);
@@ -29,6 +31,20 @@ export default function HisobotlarPage() {
     } catch (err) {
       setImportXato(err.response?.data?.detail || 'Import amalga oshmadi.');
     }
+    e.target.value = '';
+  };
+
+  const handleBackupRestore = async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    if (!confirm('Backup ma\'lumotlari bazaga birlashtiriladi. Davom etasizmi?')) { e.target.value=''; return; }
+    setImportXato('');
+    try { setBackupNatija(await backupTiklash(file)); } catch (err) { setImportXato(err.response?.data?.detail || 'Backup tiklanmadi.'); }
+    e.target.value='';
+  };
+
+  const handleContentImport = async (e) => {
+    const file = e.target.files[0]; if (!file) return; setImportXato('');
+    try { setExcelNatija(await importKontentExcel(file)); } catch (err) { setImportXato(err.response?.data?.detail || 'Excel import amalga oshmadi.'); }
     e.target.value = '';
   };
 
@@ -64,6 +80,21 @@ export default function HisobotlarPage() {
           <Button variant="secondary" onClick={() => handleExport('natijalar')} disabled={yuklanmoqda === 'natijalar'}>
             <Download size={14} /> {yuklanmoqda === 'natijalar' ? 'Yuklanmoqda...' : 'CSV yuklab olish'}
           </Button>
+        </Card>
+      </div>
+
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <Card className="p-5 animate-in-fast">
+          <div className="flex items-center gap-2 mb-3"><FileSpreadsheet size={18} style={{ color: 'var(--color-jungle)' }} /><p className="font-display font-bold">Ta'lim kontenti Excel</p></div>
+          <p className="text-xs mb-4" style={{ color: '#8A8371' }}>Mavzu, test, listening, writing va speaking ma'lumotlarini bitta XLSX faylda boshqaring.</p>
+          <div className="flex flex-wrap gap-2"><Button variant="secondary" onClick={eksportKontentExcel}><Download size={14}/>XLSX yuklash</Button><label><input type="file" accept=".xlsx" hidden onChange={handleContentImport}/><span className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer" style={{background:'var(--color-paper-warm)'}}><Upload size={14}/>XLSX import</span></label></div>
+          {excelNatija && <div className="mt-3 text-xs p-3 rounded-xl" style={{background:'var(--color-paper-warm)'}}><b>Import:</b> {Object.entries(excelNatija.import_qilindi || {}).map(([k,v]) => `${k}: ${v}`).join(' · ')}{excelNatija.xatolar?.length > 0 && <p className="mt-2" style={{color:'var(--color-red)'}}>Xatolar: {excelNatija.xatolar.slice(0,3).join(' | ')}</p>}</div>}
+        </Card>
+        <Card className="p-5 animate-in-fast">
+          <div className="flex items-center gap-2 mb-3"><Database size={18} style={{ color: 'var(--color-teal)' }} /><p className="font-display font-bold">Baza backup</p></div>
+          <p className="text-xs mb-4" style={{ color: '#8A8371' }}>O'quvchilar, kurslar, natijalar, sertifikatlar, xaridlar va audit loglarini ZIP qilib yuklab oling.</p>
+          <div className="flex flex-wrap gap-2"><Button variant="secondary" onClick={backupYuklabOlish}><Download size={14}/>Backup yuklab olish</Button><label><input type="file" accept=".zip" hidden onChange={handleBackupRestore}/><span className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer" style={{background:'var(--color-paper-warm)'}}><Upload size={14}/>Backup tiklash</span></label></div>{backupNatija && <p className="text-xs mt-3" style={{color:'var(--color-forest)'}}>Tiklandi: {backupNatija.jami} qator</p>}
         </Card>
       </div>
 

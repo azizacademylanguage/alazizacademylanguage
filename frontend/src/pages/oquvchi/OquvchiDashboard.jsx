@@ -29,6 +29,7 @@ export default function OquvchiDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (user?.muddat_tugagan) { setLoading(false); return; }
     Promise.all([getFanlarim(), getNatijalarim(), getCoinlarim(), getOqishRejasi()])
       .then(([f, n, c, p]) => {
         setFanlar(f);
@@ -38,6 +39,8 @@ export default function OquvchiDashboard() {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  if (user?.muddat_tugagan) return <div className="animate-in"><Card className="p-8 text-center"><div className="text-5xl mb-4">🔒</div><h1 className="font-display text-2xl font-bold">Foydalanish muddati tugagan</h1><p className="text-sm mt-2" style={{color:'var(--color-muted)'}}>Darslarni davom ettirish uchun admin bilan bog‘laning. Tarif: {user.tarif || 'Yagona'} · Tugash sanasi: {user.tugash_sana || '-'}</p></Card></div>;
 
   const selectedCourse = fanlar[0] || null;
   const ortacha = natijalar.length
@@ -97,7 +100,7 @@ export default function OquvchiDashboard() {
       ) : (
         <Card className="p-8 text-center mb-6">
           <p className="font-display font-bold" style={{ color: 'var(--color-ink)' }}>Sizga fan tanlanmagan</p>
-          <p className="text-sm mt-1" style={{ color: 'var(--color-muted)' }}>Admin sizga English, Rus tili yoki Koreys tilidan birini tanlab berishi kerak.</p>
+          <p className="text-sm mt-1" style={{ color: 'var(--color-muted)' }}>Admin sizga mavjud fanlardan birini tanlab berishi kerak.</p>
         </Card>
       )}
 

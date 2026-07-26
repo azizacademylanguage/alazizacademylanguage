@@ -47,6 +47,15 @@ export default function WritingTask({ topshiriq }) {
               {natija.ai_izoh}
             </p>
           )}
+
+          {natija.baholash_tafsiloti && Object.keys(natija.baholash_tafsiloti).length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 my-3">
+              {[['Grammatika','grammatika'], ['Lug‘at','lugat_boyligi'], ['Tuzilish','tuzilish'], ['Hajm','hajm']].map(([label,key]) => (
+                <div key={key} className="p-2.5 rounded-xl text-center" style={{background:'var(--color-paper-warm)'}}><p className="text-[11px]" style={{color:'var(--color-muted)'}}>{label}</p><b>{natija.baholash_tafsiloti[key] ?? 0}%</b></div>
+              ))}
+            </div>
+          )}
+
           {natija.ai_xatolar?.length > 0 && (
             <div className="space-y-1">
               <p className="text-xs font-semibold" style={{ color: '#8A8371' }}>Topilgan xatolar:</p>
@@ -55,6 +64,7 @@ export default function WritingTask({ topshiriq }) {
               ))}
             </div>
           )}
+          {natija.baholash_tafsiloti?.tavsiyalar?.length > 0 && <div className="mt-3"><p className="text-xs font-semibold mb-1">Tavsiyalar:</p>{natija.baholash_tafsiloti.tavsiyalar.map((x,i)=><p key={i} className="text-xs">• {x}</p>)}</div>}
         </div>
       ) : (
         <>

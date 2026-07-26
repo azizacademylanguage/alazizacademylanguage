@@ -458,6 +458,7 @@ class WritingTopshirishView(APIView):
             natija.ai_foiz = baho['foiz']
             natija.ai_izoh = baho['izoh']
             natija.ai_xatolar = baho['xatolar']
+            natija.baholash_tafsiloti = baho.get('tafsilot', {})
             natija.baholanmoqda = False
             natija.save()
             if natija.ai_foiz and natija.ai_foiz >= 60:

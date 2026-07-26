@@ -41,3 +41,35 @@ export const getFinalTestBatafsil = (id) => client.get(`/admin/final-testlar/${i
 export const createFinalTestSavol = (data) => client.post('/admin/final-test-savollari/', data).then(r => r.data);
 export const createFinalTestJavob = (data) => client.post('/admin/final-test-javoblari/', data).then(r => r.data);
 export const deleteFinalTestSavol = (id) => client.delete(`/admin/final-test-savollari/${id}/`);
+
+async function yuklabOlishBlob(url, filename) {
+  const response = await client.get(url, { responseType: 'blob' });
+  const blobUrl = window.URL.createObjectURL(response.data);
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(blobUrl);
+}
+
+export const getKengaytirilganStatistika = () => client.get('/admin/kengaytirilgan-statistika/').then(r => r.data);
+export const eksportKontentExcel = () => yuklabOlishBlob('/admin/content/export.xlsx', 'alaziz_kontent.xlsx');
+export const importKontentExcel = (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return client.post('/admin/content/import-xlsx/', formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data);
+};
+export const backupYuklabOlish = () => yuklabOlishBlob('/admin/backup/download/', `alaziz_backup_${new Date().toISOString().slice(0, 10)}.zip`);
+
+export const getMusobaqalar = () => client.get('/musobaqalar/').then(r => r.data);
+export const createMusobaqa = (data) => client.post('/musobaqalar/', data).then(r => r.data);
+export const yakunlaMusobaqa = (id) => client.post(`/musobaqalar/${id}/yakunlash/`).then(r => r.data);
+export const backupTiklash = (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return client.post('/admin/backup/restore/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data', 'X-Restore-Confirm': 'RESTORE' },
+  }).then(r => r.data);
+};

@@ -4,10 +4,11 @@ import {
   deleteAdminOquvchi,
   getAdminOquvchilar,
   getFanlar,
+  updateAdminOquvchi,
 } from '../../api/admin';
 import { Badge, Button, Card, EmptyState, IconButton, Input, Modal, Select, Skeleton } from '../../components/ui';
 import { useToast } from '../../context/ToastContext';
-import { BookOpen, GraduationCap, KeyRound, Plus, Search, Trash2, UserPlus } from 'lucide-react';
+import { BookOpen, CalendarPlus, GraduationCap, KeyRound, Plus, Search, Trash2, UserPlus } from 'lucide-react';
 import { cleanLevelName } from '../../utils/course';
 
 
@@ -31,10 +32,10 @@ const emptyForm = {
   password: '',
   fan: '',
   daraja: '',
-  tarif: 'standard',
-  tolov_holati: 'kutilmoqda',
-  obuna_boshlanishi: '',
-  obuna_tugashi: '',
+  boshlanish_sana: new Date().toISOString().slice(0, 10),
+  tugash_sana: '',
+  tolov_holati: 'tolangan',
+  muddat_bloklash: true,
 };
 
 export default function OquvchilarPage() {
@@ -54,8 +55,7 @@ export default function OquvchilarPage() {
       const [studentsData, subjectsData] = await Promise.all([getAdminOquvchilar(), getFanlar()]);
       setOquvchilar(studentsData.results || studentsData);
       const allSubjects = subjectsData.results || subjectsData;
-      const allowed = ['english', 'rus tili', 'koreys tili'];
-      setFanlar(allSubjects.filter((fan) => allowed.includes(String(fan.nomi).toLowerCase())));
+      setFanlar(allSubjects);
     } catch {
       showToast("Ma'lumotlarni yuklashda xatolik yuz berdi.", 'error');
     } finally {
@@ -104,10 +104,10 @@ export default function OquvchilarPage() {
         username: form.username,
         password: form.password,
         daraja: Number(form.daraja),
-        tarif: form.tarif,
+        boshlanish_sana: form.boshlanish_sana || null,
+        tugash_sana: form.tugash_sana || null,
         tolov_holati: form.tolov_holati,
-        obuna_boshlanishi: form.obuna_boshlanishi || null,
-        obuna_tugashi: form.obuna_tugashi || null,
+        muddat_bloklash: form.muddat_bloklash,
       });
       setModalOpen(false);
       setForm(emptyForm);
@@ -125,6 +125,14 @@ export default function OquvchilarPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleExtend = async (student) => {
+    const base = student.tugash_sana && new Date(student.tugash_sana) > new Date() ? new Date(student.tugash_sana) : new Date();
+    base.setDate(base.getDate() + 30);
+    await updateAdminOquvchi(student.id, { tugash_sana: base.toISOString().slice(0, 10), tolov_holati: 'tolangan', faol: true });
+    showToast("O'quvchi muddati 30 kunga uzaytirildi.");
+    load();
   };
 
   const handleDelete = async (student) => {
@@ -198,11 +206,10 @@ export default function OquvchilarPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge tone="forest"><BookOpen size={11} className="mr-1" />{student.fan_nomi || 'Fan tanlanmagan'}</Badge>
                     <Badge tone="success">{cleanLevelName(student.daraja_nomi) || 'Daraja tanlanmagan'}</Badge>
-                    <Badge>{student.tarif || 'standard'}</Badge>
-                    <Badge tone={student.tolov_holati === 'tolangan' ? 'success' : 'warning'}>{student.tolov_holati || 'kutilmoqda'}</Badge>
+                    <Badge tone={student.obuna_holati === 'faol' ? 'success' : student.obuna_holati === 'tugamoqda' ? 'warning' : 'danger'}>{student.obuna_holati || 'faol'}{student.qolgan_kun !== null && student.qolgan_kun !== undefined ? ` · ${student.qolgan_kun} kun` : ''}</Badge>
                   </div>
                 </div>
-                <IconButton icon={Trash2} tone="danger" title="O'chirish" onClick={() => handleDelete(student)} />
+                <div className="flex gap-1"><IconButton icon={CalendarPlus} title="30 kun uzaytirish" onClick={() => handleExtend(student)} /><IconButton icon={Trash2} tone="danger" title="O'chirish" onClick={() => handleDelete(student)} /></div>
               </div>
             </Card>
           ))}
@@ -238,20 +245,23 @@ export default function OquvchilarPage() {
           </div>
 
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Select label="Tarif" value={form.tarif} onChange={(event) => setForm({ ...form, tarif: event.target.value })}>
-              <option value="standard">Standard</option><option value="premium">Premium</option><option value="vip">VIP</option>
-            </Select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t" style={{ borderColor: 'var(--color-line)' }}>
+            <div className="rounded-xl border px-3.5 py-2.5" style={{ borderColor: 'var(--color-line)', background: 'var(--color-paper-warm)' }}>
+              <p className="text-xs mb-1" style={{ color: 'var(--color-muted)' }}>Tarif</p>
+              <p className="text-sm font-semibold" style={{ color: 'var(--color-ink)' }}>Yagona tarif</p>
+            </div>
             <Select label="To'lov holati" value={form.tolov_holati} onChange={(event) => setForm({ ...form, tolov_holati: event.target.value })}>
-              <option value="kutilmoqda">Kutilmoqda</option><option value="tolangan">To'langan</option><option value="qarzdor">Qarzdor</option>
+              <option value="tolangan">To'langan</option>
+              <option value="tolanmagan">To'lanmagan</option>
             </Select>
-            <Input label="Boshlanish sanasi" type="date" value={form.obuna_boshlanishi} onChange={(event) => setForm({ ...form, obuna_boshlanishi: event.target.value })} />
-            <Input label="Tugash sanasi" type="date" value={form.obuna_tugashi} onChange={(event) => setForm({ ...form, obuna_tugashi: event.target.value })} />
+            <Input type="date" label="Boshlanish sanasi" value={form.boshlanish_sana} onChange={(event) => setForm({ ...form, boshlanish_sana: event.target.value })} />
+            <Input type="date" label="Tugash sanasi" value={form.tugash_sana} onChange={(event) => setForm({ ...form, tugash_sana: event.target.value })} />
           </div>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.muddat_bloklash} onChange={(event) => setForm({ ...form, muddat_bloklash: event.target.checked })} /> Muddat tugaganda darslarni qulflash</label>
 
           {fanlar.every((fan) => !fan.darajalar?.length) && (
             <p className="text-xs px-3 py-2.5 rounded-xl" style={{ background: 'var(--color-amber-light)', color: '#8A5A1A' }}>
-              English, Rus tili va Koreys tili ma'lumotlarini bazaga joylash uchun backendda: py manage.py seed_languages
+              Tayyor fan va mavzularni bazaga joylash uchun backendda: py manage.py seed_languages
             </p>
           )}
 

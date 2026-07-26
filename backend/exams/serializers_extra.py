@@ -183,8 +183,8 @@ class WritingNatijaSerializer(serializers.ModelSerializer):
     class Meta:
         model = WritingNatija
         fields = ['id', 'topshiriq', 'topshiriq_matni', 'matn_javob', 'ai_foiz', 'ai_izoh',
-                   'ai_xatolar', 'baholanmoqda', 'created_at']
-        read_only_fields = ['ai_foiz', 'ai_izoh', 'ai_xatolar', 'baholanmoqda']
+                   'ai_xatolar', 'baholash_tafsiloti', 'baholanmoqda', 'created_at']
+        read_only_fields = ['ai_foiz', 'ai_izoh', 'ai_xatolar', 'baholash_tafsiloti', 'baholanmoqda']
 
 
 # ==================== SPEAKING ====================
@@ -271,7 +271,8 @@ class AdminAmalLogSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AdminAmalLog
-        fields = ['id', 'foydalanuvchi', 'foydalanuvchi_ism', 'amal', 'tavsif', 'nishon_user', 'nishon_ism', 'created_at']
+        fields = ['id', 'foydalanuvchi', 'foydalanuvchi_ism', 'amal', 'tavsif', 'nishon_user', 'nishon_ism',
+                  'obyekt_turi', 'obyekt_id', 'ip_manzil', 'oldingi_holat', 'yangi_holat', 'created_at']
 
 
 # ==================== LISTENING / FAOLLIK / BILDIRISHNOMALAR ====================

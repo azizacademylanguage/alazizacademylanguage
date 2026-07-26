@@ -101,3 +101,19 @@ npm run build
 Tayyor production sozlamalari va qadamlar: `DEPLOY_RAILWAY_NETLIFY_UZ.md`.
 
 Yangi Listening, Speaking, reja, streak, bildirishnoma va PWA bo‘yicha qo‘llanma: `YANGI_FUNKSiyalar_3_4_5_6_9_10.md`.
+
+## 2026-07 yangi modullar
+
+Kengaytirilgan statistika, o‘quvchi to‘lov/muddat nazorati, writing avtomatik tekshiruv, reyting-musobaqa, Excel kontent import/eksport va audit/backup qo‘shildi. Batafsil: `YANGI_MODULLAR_4_5_7_9_11_12.md`.
+
+Railway deploy yangi migratsiyalarni avtomatik bajaradi. Avtomatik backup uchun alohida Railway Cron service’da `python manage.py create_backup --keep 7` buyrug‘idan foydalaning va backend Volume’ni `/app/media` ga ulang.
+
+
+## So'nggi yangilanish
+
+- Standard, Premium va VIP o'rniga bitta **Yagona tarif** qoldirildi.
+- Qarzdor va Kutilmoqda holatlari **To'lanmagan** holatiga birlashtirildi.
+- Matematika, Ona tili, Tarix, Huquq, IT, Kompyuter, Arab tili va Turk tili qo'shildi.
+- Har bir yangi fanga 5 tadan tayyor mavzu joylandi.
+
+Batafsil: `YAGONA_TARIF_VA_YANGI_FANLAR.md`.

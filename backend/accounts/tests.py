@@ -55,3 +55,19 @@ class AdminStudentCreateTests(APITestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn('username', response.data)
+
+    def test_tariff_and_payment_status_are_normalized(self):
+        response = self.client.post('/api/admin/oquvchilar/', {
+            'ism': 'Malika',
+            'familya': 'Karimova',
+            'username': 'malika_student',
+            'password': 'student12345',
+            'daraja': self.daraja.id,
+            'tarif': 'VIP',
+            'tolov_holati': 'qarzdor',
+        }, format='json')
+
+        self.assertEqual(response.status_code, 201, response.data)
+        student = User.objects.get(username='malika_student')
+        self.assertEqual(student.tarif, User.TARIF_YAGONA)
+        self.assertEqual(student.tolov_holati, User.TOLOV_TOLANMAGAN)

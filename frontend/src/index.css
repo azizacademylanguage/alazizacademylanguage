@@ -256,6 +256,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .language-mark--teal { background: linear-gradient(145deg, var(--color-teal), var(--color-jungle)); }
 .language-mark--amethyst { background: linear-gradient(145deg, var(--color-amethyst), var(--color-teal)); }
 .language-mark--olive { background: linear-gradient(145deg, var(--color-olive), var(--color-jungle)); }
+.language-mark--amber { background: linear-gradient(145deg, var(--color-amber), var(--color-teal)); }
+.language-mark--jungle { background: linear-gradient(145deg, var(--color-jungle), var(--color-forest)); }
 .language-mark__flag { position: absolute; top: 9px; right: 10px; font-size: 18px; transform: rotate(7deg); }
 .language-mark__code { font-family: 'Manrope', sans-serif; font-weight: 900; font-size: 28px; letter-spacing: .04em; transform: rotate(7deg); }
 .course-summary {

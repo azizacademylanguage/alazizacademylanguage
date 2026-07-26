@@ -36,8 +36,3 @@ export const updateAdminOquvchi = (id, data) => client.patch(`/admin/oquvchilar/
 export const deleteAdminOquvchi = (id) => client.delete(`/admin/oquvchilar/${id}/`);
 
 export const getAdminSertifikatlar = (q = '') => client.get('/admin/sertifikatlar/', { params: q ? { q } : {} }).then(r => r.data);
-export const getKengaytirilganStatistika = () => client.get('/admin/kengaytirilgan-statistika/').then(r => r.data);
-export const getReyting = () => client.get('/reyting/').then(r => r.data);
-export const importKontentExcel = (file) => { const fd=new FormData(); fd.append('file',file); return client.post('/admin/kontent-import/',fd).then(r=>r.data); };
-export const kontentShablonUrl = '/admin/kontent-shablon.xlsx';
-export const backupUrl = '/admin/backup.json';

@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 from . import views
 from . import views_extra
 from . import engagement_views
+from . import feature_views
 
 router = DefaultRouter()
 router.register('admin/mashqlar', views.MashqViewSet, basename='mashq')
@@ -20,6 +21,7 @@ router.register('admin/final-test-javoblari', views_extra.FinalTestJavobViewSet,
 router.register('admin/shop-mahsulotlari', views_extra.AdminShopMahsulotViewSet, basename='shop-mahsulot')
 router.register('admin/writing-topshiriqlari', views_extra.WritingTopshiriqViewSet, basename='writing-topshiriq')
 router.register('admin/speaking-topshiriqlari', views_extra.SpeakingTopshiriqViewSet, basename='speaking-topshiriq')
+router.register('musobaqalar', feature_views.MusobaqaViewSet, basename='musobaqa')
 
 urlpatterns = [
     # ---- Mashq (dars darajasidagi test) ----
@@ -70,6 +72,10 @@ urlpatterns = [
     path('boshqaruv/shop-buyurtmalar/', views_extra.ShopBuyurtmalarBoshqaruvView.as_view(), name='shop-buyurtmalar-boshqaruv'),
     path('boshqaruv/shop-buyurtmalar/<int:buyurtma_id>/status/', views_extra.ShopBuyurtmaStatusView.as_view(), name='shop-buyurtma-status'),
     path('admin/oquvchilar/<int:oquvchi_id>/coin-berish/', views_extra.AdminCoinBerishView.as_view(), name='admin-coin-berish'),
+
+    # ---- Kengaytirilgan statistika va reyting ----
+    path('admin/kengaytirilgan-statistika/', feature_views.AdminKengaytirilganStatistikaView.as_view(), name='admin-kengaytirilgan-statistika'),
+    path('reyting/', feature_views.ReytingView.as_view(), name='reyting'),
 
     # ---- Admin audit log ----
     path('admin/amal-loglari/', views_extra.AdminAmalLoglariView.as_view(), name='admin-amal-loglari'),

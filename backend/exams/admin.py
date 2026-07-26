@@ -5,7 +5,7 @@ from .models import (
     FinalTest, FinalTestSavol, FinalTestJavob, FinalTestNatija, Sertifikat,
     WritingTopshiriq, WritingNatija, SpeakingTopshiriq, SpeakingNatija,
     OquvchiCoin, CoinTarix, ShopMahsulot, ShopBuyurtma, SozJuftligi, SozOyiniSessiya, AdminAmalLog,
-    ListeningSavol, ListeningNatija, KunlikFaollik, Bildirishnoma,
+    ListeningSavol, ListeningNatija, KunlikFaollik, Bildirishnoma, Musobaqa,
 )
 
 
@@ -183,3 +183,10 @@ class BildirishnomaAdmin(admin.ModelAdmin):
     list_display = ['id', 'oquvchi', 'sarlavha', 'tur', 'oqilgan', 'created_at']
     list_filter = ['tur', 'oqilgan']
     search_fields = ['oquvchi__username', 'sarlavha', 'matn']
+
+
+@admin.register(Musobaqa)
+class MusobaqaAdmin(admin.ModelAdmin):
+    list_display = ['id', 'nomi', 'boshlanish_sana', 'tugash_sana', 'fan', 'filial', 'status']
+    list_filter = ['status', 'fan', 'filial']
+    search_fields = ['nomi', 'tavsif']

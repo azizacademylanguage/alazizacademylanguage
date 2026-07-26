@@ -35,19 +35,23 @@ class User(AbstractUser):
     # Modelda ham default bilan saqlansa yangi foydalanuvchi yaratishda NULL
     # yuborilmaydi va eski tokenlarni bekor qilish uchun foydalanish mumkin.
     token_version = models.PositiveIntegerField(default=0)
-    TARIF_CHOICES = (('standard', 'Standard'), ('premium', 'Premium'), ('vip', 'VIP'))
-    TOLOV_CHOICES = (('tolangan', "To'langan"), ('kutilmoqda', 'Kutilmoqda'), ('qarzdor', 'Qarzdor'))
-    tarif = models.CharField(max_length=20, choices=TARIF_CHOICES, default='standard')
-    tolov_holati = models.CharField(max_length=20, choices=TOLOV_CHOICES, default='kutilmoqda')
-    obuna_boshlanishi = models.DateField(null=True, blank=True)
-    obuna_tugashi = models.DateField(null=True, blank=True)
+
+    TARIF_YAGONA = 'Yagona'
+    TOLOV_TOLANGAN = 'tolangan'
+    TOLOV_TOLANMAGAN = 'tolanmagan'
+    # Eski frontend yoki eski bazadagi qiymatlar bilan moslik uchun aliaslar.
+    TOLOV_QARZDOR = TOLOV_TOLANMAGAN
+    TOLOV_KUTILMOQDA = TOLOV_TOLANMAGAN
+    TOLOV_CHOICES = (
+        (TOLOV_TOLANGAN, "To'langan"),
+        (TOLOV_TOLANMAGAN, "To'lanmagan"),
+    )
+    tarif = models.CharField(max_length=80, default=TARIF_YAGONA, blank=True)
+    boshlanish_sana = models.DateField(null=True, blank=True)
+    tugash_sana = models.DateField(null=True, blank=True)
+    tolov_holati = models.CharField(max_length=20, choices=TOLOV_CHOICES, default=TOLOV_TOLANGAN)
+    muddat_bloklash = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
-
-    @property
-    def obuna_faol(self):
-        from django.utils import timezone
-        return self.faol and (not self.obuna_tugashi or self.obuna_tugashi >= timezone.localdate())
-
 
     class Meta:
         db_table = 'users'
@@ -61,6 +65,28 @@ class User(AbstractUser):
     def full_name(self):
         return f"{self.ism} {self.familya}".strip() or self.username
 
+    @property
+    def muddat_tugagan(self):
+        from django.utils import timezone
+        return bool(self.role == self.ROLE_OQUVCHI and self.muddat_bloklash and self.tugash_sana and self.tugash_sana < timezone.localdate())
+
+    @property
+    def qolgan_kun(self):
+        from django.utils import timezone
+        if not self.tugash_sana:
+            return None
+        return (self.tugash_sana - timezone.localdate()).days
+
+    @property
+    def obuna_holati(self):
+        if self.tolov_holati != self.TOLOV_TOLANGAN:
+            return self.tolov_holati
+        if self.muddat_tugagan:
+            return 'tugagan'
+        if self.qolgan_kun is not None and self.qolgan_kun <= 5:
+            return 'tugamoqda'
+        return 'faol'
+
     def save(self, *args, **kwargs):
         # createsuperuser orqali yaratilgan har qanday foydalanuvchi
         # avtomatik ravishda 'admin' roliga ega bo'ladi — shunday qilib u
@@ -68,4 +94,10 @@ class User(AbstractUser):
         # dashboard) bir xil login/parol bilan kira oladi.
         if self.is_superuser:
             self.role = self.ROLE_ADMIN
+        # Platformada endi bitta tarif va ikkita to'lov holati mavjud.
+        self.tarif = self.TARIF_YAGONA
+        if self.tolov_holati in {'qarzdor', 'kutilmoqda', self.TOLOV_TOLANMAGAN}:
+            self.tolov_holati = self.TOLOV_TOLANMAGAN
+        else:
+            self.tolov_holati = self.TOLOV_TOLANGAN
         super().save(*args, **kwargs)

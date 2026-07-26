@@ -40,6 +40,7 @@ export default function AmalLoglariPage() {
                     {log.nishon_ism && <span className="text-xs" style={{ color: '#8A8371' }}>→ {log.nishon_ism}</span>}
                   </div>
                   {log.tavsif && <p className="text-xs" style={{ color: '#8A8371' }}>{log.tavsif}</p>}
+                  {(log.obyekt_turi || log.ip_manzil) && <p className="text-[11px] mt-1" style={{color:'var(--color-muted)'}}>{log.obyekt_turi ? `${log.obyekt_turi} #${log.obyekt_id || '-'}` : ''}{log.ip_manzil ? ` · IP: ${log.ip_manzil}` : ''}</p>}
                 </div>
                 <span className="text-xs whitespace-nowrap ml-3" style={{ color: '#9C9584' }}>
                   {new Date(log.created_at).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}

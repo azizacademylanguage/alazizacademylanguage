@@ -1,0 +1,13 @@
+import { useEffect, useState } from 'react';
+import { getMusobaqalar, getReyting } from '../../api/ranking';
+import { Badge, Button, Card, Skeleton } from '../../components/ui';
+import { Medal, Trophy } from 'lucide-react';
+
+export default function ReytingPage(){
+ const [period,setPeriod]=useState('hafta'); const [data,setData]=useState(null); const [mus,setMus]=useState([]); const [loading,setLoading]=useState(true);
+ useEffect(()=>{setLoading(true);Promise.all([getReyting(period),getMusobaqalar()]).then(([r,m])=>{setData(r);setMus(m.results||m)}).finally(()=>setLoading(false))},[period]);
+ return <div className="animate-in"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6"><div><h1 className="font-display text-2xl font-bold">Reyting</h1><p className="text-sm" style={{color:'var(--color-muted)'}}>Test, listening, writing, faollik va sertifikat ballari.</p></div><div className="flex gap-2"><Button variant={period==='hafta'?'primary':'secondary'} onClick={()=>setPeriod('hafta')}>Haftalik</Button><Button variant={period==='oy'?'primary':'secondary'} onClick={()=>setPeriod('oy')}>Oylik</Button></div></div>
+ {loading?<Skeleton className="h-96 w-full"/>:<><Card className="p-5 mb-6"><div className="flex items-center gap-2 mb-4"><Trophy size={18}/><h2 className="font-display font-bold">Umumiy reyting</h2>{data?.mening_orinim&&<Badge tone="success" className="ml-auto">Mening o‘rnim #{data.mening_orinim.orin}</Badge>}</div><div className="space-y-2">{(data?.reyting||[]).map(item=><div key={item.oquvchi_id} className="flex items-center gap-3 p-3 rounded-xl" style={{background:item.orin<=3?'var(--color-paper-warm)':'transparent',border:'1px solid var(--color-line)'}}><Medal size={17} style={{color:item.orin===1?'#B88900':'var(--color-muted)'}}/><b className="w-8">#{item.orin}</b><div className="flex-1 min-w-0"><p className="font-semibold truncate">{item.ism}</p><p className="text-xs" style={{color:'var(--color-muted)'}}>{item.filial||'Filialsiz'}</p></div><b>{item.ball} ball</b></div>)}</div></Card>
+ <h2 className="font-display font-bold mb-3">Faol musobaqalar</h2><div className="grid grid-cols-1 lg:grid-cols-2 gap-4">{mus.map(item=><Card key={item.id} className="p-5"><div className="flex items-center gap-2"><Trophy size={18}/><h3 className="font-bold">{item.nomi}</h3><Badge tone={item.status==='yakun'?'success':'warning'} className="ml-auto">{item.status}</Badge></div><p className="text-xs mt-2" style={{color:'var(--color-muted)'}}>{item.boshlanish_sana} — {item.tugash_sana}</p><p className="text-sm mt-2">{item.tavsif}</p></Card>)}</div></>}
+ </div>
+}

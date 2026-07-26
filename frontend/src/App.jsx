@@ -19,8 +19,7 @@ import HisobotlarPage from './pages/admin/HisobotlarPage';
 import AmalLoglariPage from './pages/admin/AmalLoglariPage';
 import AdminSertifikatlarPage from './pages/admin/SertifikatlarPage';
 import KengaytirilganStatistikaPage from './pages/admin/KengaytirilganStatistikaPage';
-import KontentBackupPage from './pages/admin/KontentBackupPage';
-import ReytingPage from './pages/shared/ReytingPage';
+import MusobaqalarPage from './pages/admin/MusobaqalarPage';
 
 import NazoratchiLayout from './pages/nazoratchi/NazoratchiLayout';
 import NazoratchiDashboard from './pages/nazoratchi/NazoratchiDashboard';
@@ -42,6 +41,7 @@ import SozOyiniPage from './pages/oquvchi/SozOyiniPage';
 import BildirishnomalarPage from './pages/oquvchi/BildirishnomalarPage';
 import CertificateVerifyPage from './pages/public/CertificateVerifyPage';
 import ShopBuyurtmalarPage from './pages/shared/ShopBuyurtmalarPage';
+import ReytingPage from './pages/oquvchi/ReytingPage';
 
 function RootRedirect() {
   const { user } = useAuth();
@@ -76,8 +76,7 @@ export default function App() {
             <Route path="amal-loglari" element={<AmalLoglariPage />} />
             <Route path="sertifikatlar" element={<AdminSertifikatlarPage />} />
             <Route path="kengaytirilgan-statistika" element={<KengaytirilganStatistikaPage />} />
-            <Route path="reyting" element={<ReytingPage />} />
-            <Route path="kontent-backup" element={<KontentBackupPage />} />
+            <Route path="musobaqalar" element={<MusobaqalarPage />} />
           </Route>
 
           {/* NAZORATCHI */}
