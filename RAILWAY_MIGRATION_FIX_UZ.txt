@@ -1,0 +1,26 @@
+RAILWAY MIGRATION TUZATISHI
+==========================
+
+Xato:
+  django.db.utils.ProgrammingError: relation "bildirishnomalar" already exists
+
+Sabab:
+  PostgreSQL'da jadval mavjud, lekin Django exams.0006 migratsiyasini hali
+  bajarilmagan deb hisoblagan. Eski migration jadvalni yana yaratishga uringan.
+
+Tuzatish:
+  - exams/migrations/0006... mavjud jadval va ustunlarni tekshiradi;
+  - faqat yetishmayotgan sxema qismlarini yaratadi;
+  - mavjud o'quvchi, natija, sertifikat va xarid ma'lumotlari o'chirilmaydi;
+  - CoinTarix streak turi uchun 0007 migration qo'shildi.
+
+GitHub'ga push:
+  git add .
+  git commit -m "Railway DuplicateTable migration tuzatildi"
+  git push origin main
+
+Railway GitHub bilan ulangan bo'lsa deploy avtomatik boshlanadi.
+
+Deploy logida kutiladigan natija:
+  Applying exams.0006_listening_faollik_bildirishnoma_speaking_transcript... OK
+  Applying exams.0007_alter_cointarix_sabab... OK

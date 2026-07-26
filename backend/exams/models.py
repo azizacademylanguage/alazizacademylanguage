@@ -565,7 +565,7 @@ class Bildirishnoma(models.Model):
         ordering = ['-created_at']
         verbose_name = 'Bildirishnoma'
         verbose_name_plural = 'Bildirishnomalar'
-        indexes = [models.Index(fields=['oquvchi', 'oqilgan', '-created_at'])]
+        indexes = [models.Index(fields=['oquvchi', 'oqilgan', '-created_at'], name='bildirish_oquvchi_0b824d_idx')]
 
     def __str__(self):
         return f"{self.oquvchi} - {self.sarlavha}"
