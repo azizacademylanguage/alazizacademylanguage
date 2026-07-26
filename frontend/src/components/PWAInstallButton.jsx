@@ -29,8 +29,8 @@ export default function PWAInstallButton({ compact = false }) {
     }
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
     alert(ios
-      ? "Safari pastidagi Share tugmasini bosing va ‘Add to Home Screen’ni tanlang."
-      : "Brauzer menyusidan ‘Install app’ yoki ‘Add to Home screen’ni tanlang.");
+      ? "iPhone Safari: «Поделиться» → «На экран “Домой”» → «Добавить»."
+      : "Brauzer menyusidan “Install app” yoki “Add to Home screen”ni tanlang.");
   };
 
   if (installed) {

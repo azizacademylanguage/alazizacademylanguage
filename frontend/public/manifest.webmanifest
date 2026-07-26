@@ -1,7 +1,7 @@
 {
   "name": "Bilim Yo'li — AL-AZIZ Til Platformasi",
   "short_name": "Bilim Yo'li",
-  "description": "English, Rus tili va Koreys tilini darajalar orqali o‘rganish platformasi.",
+  "description": "AL-AZIZ Academy uchun admin, filial rahbari va o‘quvchi panellariga ega ta’lim platformasi.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -14,7 +14,8 @@
     { "src": "/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
   "shortcuts": [
-    { "name": "O‘quvchi paneli", "short_name": "Panel", "url": "/oquvchi", "icons": [{ "src": "/pwa/icon-192.png", "sizes": "192x192" }] },
-    { "name": "So‘z o‘yini", "short_name": "O‘yin", "url": "/oquvchi/soz-oyini", "icons": [{ "src": "/pwa/icon-192.png", "sizes": "192x192" }] }
+    { "name": "Admin paneli", "short_name": "Admin", "url": "/admin", "icons": [{ "src": "/pwa/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Filial rahbari", "short_name": "Rahbar", "url": "/nazoratchi", "icons": [{ "src": "/pwa/icon-192.png", "sizes": "192x192" }] },
+    { "name": "O‘quvchi paneli", "short_name": "O‘quvchi", "url": "/oquvchi", "icons": [{ "src": "/pwa/icon-192.png", "sizes": "192x192" }] }
   ]
 }

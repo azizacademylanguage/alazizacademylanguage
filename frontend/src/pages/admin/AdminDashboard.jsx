@@ -2,19 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getAdminSertifikatlar, getAdminStatistika } from '../../api/admin';
 import { StatCard, Card, Skeleton, Badge, Button } from '../../components/ui';
-import { Award, Building2, Users, GraduationCap, TrendingUp, BarChart3, ArrowRight } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { Award, Building2, Users, GraduationCap, TrendingUp, ArrowRight } from 'lucide-react';
+import BranchComparisonChart from '../../components/BranchComparisonChart';
+import PWAInstallCard from '../../components/PWAInstallCard';
 import { cleanLevelName } from '../../utils/course';
-
-function CustomTooltip({ active, payload, label }) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="px-3 py-2 rounded-xl text-xs" style={{ background: 'var(--color-forest)', color: 'white', boxShadow: 'var(--shadow-md)' }}>
-      <p className="font-semibold mb-1">{label}</p>
-      {payload.map((item) => <p key={item.name}>{item.name}: {item.value}</p>)}
-    </div>
-  );
-}
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
@@ -31,9 +22,9 @@ export default function AdminDashboard() {
   }, []);
 
   const chartData = stats?.filiallar_kesimida?.map((item) => ({
-    nomi: item.filial_nomi.length > 12 ? `${item.filial_nomi.slice(0, 12)}…` : item.filial_nomi,
-    "O'quvchilar": item.oquvchilar_soni,
-    "O'rtacha %": item.ortacha_foiz,
+    name: item.filial_nomi,
+    students: item.oquvchilar_soni,
+    average: item.ortacha_foiz,
   })) || [];
 
   return (
@@ -43,6 +34,8 @@ export default function AdminDashboard() {
         <h1 className="font-display text-2xl sm:text-3xl font-extrabold" style={{ color: 'var(--color-ink)' }}>Boshqaruv paneli</h1>
         <p className="text-sm mt-1" style={{ color: 'var(--color-muted)' }}>O'quvchilar, natijalar va yangi sertifikatlarni kuzating.</p>
       </div>
+
+      <PWAInstallCard roleLabel="Admin" />
 
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24 w-full" />)}</div>
@@ -80,18 +73,8 @@ export default function AdminDashboard() {
       )}
 
       {!loading && chartData.length > 0 && (
-        <Card className="p-5 mb-6 animate-in-fast">
-          <div className="flex items-center gap-2 mb-4"><BarChart3 size={17} style={{ color: 'var(--color-teal)' }} /><h2 className="font-display font-bold text-sm" style={{ color: 'var(--color-ink)' }}>Filiallar bo'yicha taqqoslash</h2></div>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={chartData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)" vertical={false} />
-              <XAxis dataKey="nomi" tick={{ fontSize: 11, fill: 'var(--color-muted)' }} axisLine={{ stroke: 'var(--color-line)' }} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: 'var(--color-muted)' }} axisLine={false} tickLine={false} />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--color-paper-warm)' }} />
-              <Bar dataKey="O'quvchilar" fill="var(--color-teal)" radius={[7, 7, 0, 0]} />
-              <Bar dataKey="O'rtacha %" fill="var(--color-olive)" radius={[7, 7, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <Card className="p-0 mb-6 animate-in-fast branch-comparison-card">
+          <BranchComparisonChart data={chartData} />
         </Card>
       )}
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'alaziz-pwa-v3';
+const CACHE_NAME = 'alaziz-pwa-v4';
 const APP_SHELL = ['/', '/login', '/manifest.webmanifest', '/favicon.svg'];
 
 self.addEventListener('install', (event) => {

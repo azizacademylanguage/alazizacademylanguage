@@ -1428,3 +1428,150 @@ body {
   .pwa-dashboard-card .pwa-install-button span { display: none; } .pwa-dashboard-card .pwa-install-button { width: 40px; height: 40px; padding: 0; }
   .notification-popover { position: fixed; top: 66px; right: 10px; left: 10px; width: auto; }
 }
+
+/* ==================== ADMIN / NAZORATCHI PWA + FILIAL BAR CHART ==================== */
+.pwa-dashboard-card__content {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.branch-comparison-card {
+  overflow: hidden;
+  border-color: rgba(8, 99, 117, .14) !important;
+  background:
+    radial-gradient(circle at 92% 0%, rgba(59, 100, 2, .08), transparent 28%),
+    linear-gradient(145deg, #fff, rgba(247, 250, 249, .88)) !important;
+  box-shadow: 0 22px 55px rgba(8, 41, 0, .10), 0 4px 14px rgba(8, 99, 117, .06) !important;
+}
+.branch-comparison { padding: 23px; }
+.branch-comparison__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 18px;
+}
+.branch-comparison__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 7px;
+  color: var(--color-teal);
+  font: 850 10px/1 'Manrope', sans-serif;
+  letter-spacing: .16em;
+}
+.branch-comparison__header h2 {
+  margin: 0;
+  color: var(--color-ink);
+  font: 850 19px/1.25 'Manrope', sans-serif;
+}
+.branch-comparison__header p {
+  max-width: 580px;
+  margin: 6px 0 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.branch-comparison__legend {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 7px;
+  padding: 10px 12px;
+  border: 1px solid rgba(8, 99, 117, .10);
+  border-radius: 14px;
+  color: var(--color-muted);
+  background: rgba(255,255,255,.76);
+  font-size: 10px;
+  font-weight: 750;
+}
+.branch-comparison__legend span { display: flex; align-items: center; gap: 7px; }
+.branch-comparison__legend i {
+  width: 22px;
+  height: 8px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--color-teal), var(--color-jungle), var(--color-olive));
+  box-shadow: 0 4px 10px rgba(8,99,117,.16);
+}
+.branch-insight-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.branch-insight {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(8,99,117,.10);
+  border-radius: 16px;
+  background: rgba(255,255,255,.78);
+  transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+}
+.branch-insight:hover { transform: translateY(-2px); border-color: rgba(8,99,117,.24); box-shadow: var(--shadow-sm); }
+.branch-insight--winner { background: linear-gradient(135deg, rgba(59,100,2,.09), rgba(255,255,255,.92)); }
+.branch-insight__icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  color: white;
+  background: linear-gradient(145deg, var(--color-teal), var(--color-jungle));
+  box-shadow: 0 9px 20px rgba(8,99,117,.19);
+}
+.branch-insight--winner .branch-insight__icon { background: linear-gradient(145deg, var(--color-olive), var(--color-jungle)); }
+.branch-insight div { min-width: 0; display: grid; gap: 2px; }
+.branch-insight small { color: var(--color-muted); font-size: 9px; font-weight: 700; }
+.branch-insight strong { overflow: hidden; color: var(--color-ink); font-size: 12px; font-weight: 850; text-overflow: ellipsis; white-space: nowrap; }
+.branch-insight b { color: var(--color-teal); font-size: 11px; }
+.branch-chart-shell {
+  width: 100%;
+  min-height: 270px;
+  padding: 8px 4px 0;
+  overflow: hidden;
+  border: 1px solid rgba(8,99,117,.09);
+  border-radius: 19px;
+  background:
+    linear-gradient(rgba(255,255,255,.86), rgba(255,255,255,.86)),
+    repeating-linear-gradient(0deg, transparent, transparent 24px, rgba(8,99,117,.035) 25px);
+}
+.branch-chart-axis-name { fill: var(--color-ink); font-size: 10px; font-weight: 800; }
+.branch-chart-axis-meta { fill: var(--color-muted); font-size: 8px; font-weight: 650; }
+.branch-chart-bar-label { fill: var(--color-teal); font-size: 10px; font-weight: 900; }
+.branch-chart-bar-label.is-inside { fill: #fff; }
+.branch-chart-tooltip {
+  min-width: 190px;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 15px;
+  color: white;
+  background: linear-gradient(145deg, var(--color-forest), var(--color-teal));
+  box-shadow: 0 18px 38px rgba(8,41,0,.22);
+}
+.branch-chart-tooltip__title { display: flex; align-items: center; gap: 7px; margin-bottom: 9px; }
+.branch-chart-tooltip__title strong { font-size: 12px; }
+.branch-chart-tooltip__row { display: flex; justify-content: space-between; gap: 18px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,.10); font-size: 10px; }
+.branch-chart-tooltip__row + .branch-chart-tooltip__row { margin-top: 6px; }
+.branch-chart-tooltip__row span { color: rgba(255,255,255,.67); }
+.branch-chart-tooltip__row b { color: #fff; }
+
+@media (max-width: 720px) {
+  .pwa-dashboard-card__content { align-items: flex-start; flex-wrap: wrap; }
+  .pwa-dashboard-card__content .pwa-install-button { width: 100%; }
+  .pwa-dashboard-card__content .pwa-install-button span { display: inline; }
+  .branch-comparison { padding: 16px 12px 14px; }
+  .branch-comparison__header { flex-direction: column; gap: 11px; }
+  .branch-comparison__legend { width: 100%; grid-template-columns: 1fr; }
+  .branch-insight-grid { grid-template-columns: 1fr; }
+  .branch-chart-shell { margin-inline: 0; }
+}
+
+@media (max-width: 390px) {
+  .branch-comparison { padding-inline: 8px; }
+  .branch-comparison__header { padding-inline: 4px; }
+  .branch-insight-grid { padding-inline: 4px; }
+}

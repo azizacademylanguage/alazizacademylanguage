@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { getKengaytirilganStatistika } from '../../api/adminExtra';
 import { Card, Skeleton, StatCard, Badge } from '../../components/ui';
 import { Activity, AlertTriangle, Award, CreditCard, Headphones, Mic2, PenLine, Users } from 'lucide-react';
-import { BarChart, Bar, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, LineChart, Line } from 'recharts';
+import { CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, LineChart, Line } from 'recharts';
+import BranchComparisonChart from '../../components/BranchComparisonChart';
 
 export default function KengaytirilganStatistikaPage() {
   const [data, setData] = useState(null);
@@ -34,7 +35,7 @@ export default function KengaytirilganStatistikaPage() {
     </div>
 
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 mb-6">
-      <Card className="p-5"><h2 className="font-display font-bold mb-4">Filiallar taqqoslanishi</h2><ResponsiveContainer width="100%" height={280}><BarChart data={data?.filiallar || []}><CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)"/><XAxis dataKey="filial"/><YAxis/><Tooltip/><Bar dataKey="oquvchilar" fill="var(--color-teal)" radius={[8,8,0,0]}/><Bar dataKey="ortacha" fill="var(--color-olive)" radius={[8,8,0,0]}/></BarChart></ResponsiveContainer></Card>
+      <Card className="p-0 branch-comparison-card"><BranchComparisonChart data={data?.filiallar || []} title="Filiallar natijasi" description="Filiallar o‘rtacha ta’lim natijasi bo‘yicha yuqoridan pastga tartiblandi." /></Card>
       <Card className="p-5"><h2 className="font-display font-bold mb-4">Top 10 reyting</h2><div className="space-y-2">{(data?.top_reyting || []).map(item => <div key={item.oquvchi_id} className="flex items-center gap-3 p-3 rounded-xl" style={{background:'var(--color-paper-warm)'}}><Badge tone={item.orin <= 3 ? 'success' : 'neutral'}>#{item.orin}</Badge><div className="flex-1 min-w-0"><p className="font-semibold truncate">{item.ism}</p><p className="text-xs" style={{color:'var(--color-muted)'}}>{item.filial || 'Filialsiz'}</p></div><b>{item.ball}</b></div>)}</div></Card>
     </div>
 

@@ -101,7 +101,7 @@ export default function DashboardLayout({ navItems, children, extraSidebarConten
         </div>
 
         <div className="flex items-center gap-2">
-          {user?.role === 'oquvchi' && <PWAInstallButton compact />}
+          <PWAInstallButton compact />
           {user?.role === 'oquvchi' && <NotificationBell mobile />}
           <div className="mobile-user-chip" title={user?.full_name || user?.username}>
             {(user?.ism?.[0] || user?.username?.[0] || '?').toUpperCase()}
@@ -141,12 +141,10 @@ export default function DashboardLayout({ navItems, children, extraSidebarConten
 
       {/* Content */}
       <main className="flex-1 min-w-0 overflow-x-hidden relative">
-        {user?.role === 'oquvchi' && (
-          <div className="desktop-quick-actions hidden lg:flex">
-            <PWAInstallButton compact />
-            <NotificationBell />
-          </div>
-        )}
+        <div className="desktop-quick-actions hidden lg:flex">
+          <PWAInstallButton compact />
+          {user?.role === 'oquvchi' && <NotificationBell />}
+        </div>
         <div className="dashboard-content max-w-6xl mx-auto p-4 pt-20 sm:p-6 sm:pt-24 lg:p-8 lg:pt-8">
           {children}
         </div>

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getNazoratchiStatistika, getOquvchilar } from '../../api/nazoratchi';
 import { StatCard, Skeleton, Card } from '../../components/ui';
-import { Users, ClipboardCheck, TrendingUp, ChevronRight, GraduationCap } from 'lucide-react';
+import { Users, ClipboardCheck, TrendingUp, ChevronRight } from 'lucide-react';
+import PWAInstallCard from '../../components/PWAInstallCard';
 
 export default function NazoratchiDashboard() {
   const [stats, setStats] = useState(null);
@@ -20,6 +21,8 @@ export default function NazoratchiDashboard() {
     <div className="animate-in">
       <h1 className="font-display text-2xl font-bold mb-1" style={{ color: 'var(--color-ink)' }}>Boshqaruv paneli</h1>
       <p className="text-sm mb-8" style={{ color: '#8A8371' }}>Sizning filialingiz bo'yicha umumiy holat.</p>
+
+      <PWAInstallCard roleLabel="Filial rahbari" />
 
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
