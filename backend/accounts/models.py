@@ -31,6 +31,10 @@ class User(AbstractUser):
     ism = models.CharField(max_length=100, blank=True)
     familya = models.CharField(max_length=100, blank=True)
     faol = models.BooleanField(default=True)
+    # Legacy Railway bazalarida bu ustun allaqachon NOT NULL ko‘rinishda bor.
+    # Modelda ham default bilan saqlansa yangi foydalanuvchi yaratishda NULL
+    # yuborilmaydi va eski tokenlarni bekor qilish uchun foydalanish mumkin.
+    token_version = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

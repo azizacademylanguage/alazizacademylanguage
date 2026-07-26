@@ -286,6 +286,7 @@ class AdminOquvchiSerializer(OquvchiAssignmentMixin, serializers.ModelSerializer
             role=User.ROLE_OQUVCHI,
             yaratgan=admin,
             is_active=True,
+            token_version=0,
             **data,
         )
         OquvchiFan.objects.create(

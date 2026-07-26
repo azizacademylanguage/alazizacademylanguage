@@ -37,5 +37,25 @@ class Command(BaseCommand):
                             f'ALTER TABLE "users" ALTER COLUMN "{column}" DROP NOT NULL'
                         )
 
+                # Legacy Railway nusxalarida token_version ustuni modeldan
+                # oldin paydo bo'lgan va NOT NULL/defaultsiz qolgan. Har deployda
+                # uni idempotent tarzda to'g'rilab turamiz.
+                if not column_exists(cursor, 'users', 'token_version'):
+                    cursor.execute(
+                        'ALTER TABLE "users" ADD COLUMN "token_version" '
+                        'integer NOT NULL DEFAULT 0'
+                    )
+                else:
+                    cursor.execute(
+                        'UPDATE "users" SET "token_version" = 0 '
+                        'WHERE "token_version" IS NULL'
+                    )
+                    cursor.execute(
+                        'ALTER TABLE "users" ALTER COLUMN "token_version" SET DEFAULT 0'
+                    )
+                    cursor.execute(
+                        'ALTER TABLE "users" ALTER COLUMN "token_version" SET NOT NULL'
+                    )
+
         updated = reset_model_sequences(apps.get_models())
         self.stdout.write(self.style.SUCCESS(f"DB_REPAIR_READY sequences={updated}"))

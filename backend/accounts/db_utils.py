@@ -1,8 +1,8 @@
 """Production database repair helpers.
 
-These helpers are intentionally PostgreSQL-safe and become no-ops on SQLite.
-They are used after Railway migrations and when a legacy database has stale
-serial sequences after data imports/restores.
+These helpers are PostgreSQL-safe and become no-ops on SQLite where
+appropriate. They are used after Railway migrations and when a restored
+legacy database has stale serial sequences.
 """
 
 from __future__ import annotations
@@ -14,10 +14,12 @@ from django.db.models import Model
 
 
 def reset_model_sequences(models: Iterable[type[Model]]) -> int:
-    """Reset PostgreSQL serial sequences to each table's current MAX(pk).
+    """Reset PostgreSQL serial sequences for tables that actually exist.
 
-    Returns the number of sequences updated. SQLite and other databases are
-    left unchanged.
+    A partially migrated Railway database can have Django model state for a
+    table whose physical table has not been created yet. Calling
+    ``pg_get_serial_sequence`` for such a table aborts the whole transaction.
+    We therefore introspect once and skip absent/unmanaged tables safely.
     """
 
     if connection.vendor != "postgresql":
@@ -27,11 +29,21 @@ def reset_model_sequences(models: Iterable[type[Model]]) -> int:
     quote = connection.ops.quote_name
 
     with connection.cursor() as cursor:
-        for model in models:
-            table = model._meta.db_table
-            pk_column = model._meta.pk.column
+        existing_tables = set(connection.introspection.table_names(cursor))
 
-            cursor.execute("SELECT pg_get_serial_sequence(%s, %s)", [table, pk_column])
+        for model in models:
+            if not model._meta.managed:
+                continue
+
+            table = model._meta.db_table
+            if table not in existing_tables:
+                continue
+
+            pk_column = model._meta.pk.column
+            cursor.execute(
+                "SELECT pg_get_serial_sequence(%s, %s)",
+                [f"public.{table}", pk_column],
+            )
             row = cursor.fetchone()
             sequence_name = row[0] if row else None
             if not sequence_name:
