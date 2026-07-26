@@ -6,7 +6,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth import get_user_model
-from django.db.models import Avg
+from django.db import DatabaseError
+from django.db.models import Avg, Count, Q
 
 from .models import Filial
 from .serializers import (
@@ -56,7 +57,49 @@ class NazoratchiViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdmin]
 
     def get_queryset(self):
-        return User.objects.filter(role=User.ROLE_NAZORATCHI).order_by('-created_at')
+        # select_related filial so'rovini kamaytiradi; annotation esa har bir
+        # nazoratchi uchun alohida COUNT so'rovi yuborilishining oldini oladi.
+        return User.objects.filter(role=User.ROLE_NAZORATCHI).select_related('filial').annotate(
+            _oquvchilar_soni=Count(
+                'yaratganlari',
+                filter=Q(yaratganlari__role=User.ROLE_OQUVCHI),
+                distinct=True,
+            )
+        ).order_by('-created_at')
+
+    def list(self, request, *args, **kwargs):
+        try:
+            return super().list(request, *args, **kwargs)
+        except DatabaseError as exc:
+            # Migration hali relationship indeksini tiklayotgan paytda ham admin
+            # sahifasi butunlay qulab tushmasin. Minimal ro'yxat qaytariladi va
+            # Railway logida aniq diagnostika qoladi.
+            logger.exception('ADMIN_NAZORATCHILAR_LIST_FAILED error=%s', exc.__class__.__name__)
+            try:
+                rows = list(User.objects.filter(role=User.ROLE_NAZORATCHI).values(
+                    'id', 'username', 'ism', 'familya', 'filial_id', 'faol', 'created_at'
+                ).order_by('-created_at'))
+                filial_ids = [row['filial_id'] for row in rows if row.get('filial_id')]
+                filial_map = dict(Filial.objects.filter(id__in=filial_ids).values_list('id', 'nomi'))
+                data = [
+                    {
+                        **row,
+                        'filial': row.get('filial_id'),
+                        'filial_nomi': filial_map.get(row.get('filial_id'), ''),
+                        'oquvchilar_soni': 0,
+                    }
+                    for row in rows
+                ]
+                return Response(data)
+            except DatabaseError as fallback_exc:
+                logger.exception(
+                    'ADMIN_NAZORATCHILAR_FALLBACK_FAILED error=%s',
+                    fallback_exc.__class__.__name__,
+                )
+                return Response(
+                    {"detail": "Baza migratsiyasi yakunlanmoqda. Bir necha soniyadan keyin qayta urinib ko'ring."},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
 
     def perform_create(self, serializer):
         serializer.save()

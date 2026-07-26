@@ -14,11 +14,30 @@ export default function NazoratchilarPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [form, setForm] = useState({ username: '', password: '', ism: '', familya: '', filial: '' });
 
-  const load = () => {
-    Promise.all([getNazoratchilar(), getFiliallar()]).then(([n, f]) => {
-      setNazoratchilar(n.results || n);
-      setFiliallar(f.results || f);
-    }).finally(() => setLoading(false));
+  const load = async () => {
+    setLoading(true);
+    const [nazoratchiResult, filialResult] = await Promise.allSettled([
+      getNazoratchilar(),
+      getFiliallar(),
+    ]);
+
+    if (nazoratchiResult.status === 'fulfilled') {
+      const data = nazoratchiResult.value;
+      setNazoratchilar(data.results || data);
+    } else {
+      setNazoratchilar([]);
+      showToast('Nazoratchilar ro\'yxatini yuklab bo\'lmadi. Sahifani yangilang.', 'error');
+    }
+
+    if (filialResult.status === 'fulfilled') {
+      const data = filialResult.value;
+      setFiliallar(data.results || data);
+    } else {
+      setFiliallar([]);
+      showToast('Filiallar ro\'yxatini yuklab bo\'lmadi.', 'error');
+    }
+
+    setLoading(false);
   };
 
   useEffect(() => { load(); }, []);

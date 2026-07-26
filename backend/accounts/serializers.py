@@ -20,10 +20,16 @@ class FilialSerializer(serializers.ModelSerializer):
         fields = ['id', 'nomi', 'manzil', 'created_at', 'oquvchilar_soni', 'nazoratchilar_soni']
 
     def get_oquvchilar_soni(self, obj):
-        return obj.users.filter(role=User.ROLE_OQUVCHI).count()
+        try:
+            return obj.users.filter(role=User.ROLE_OQUVCHI).count()
+        except DatabaseError:
+            return 0
 
     def get_nazoratchilar_soni(self, obj):
-        return obj.users.filter(role=User.ROLE_NAZORATCHI).count()
+        try:
+            return obj.users.filter(role=User.ROLE_NAZORATCHI).count()
+        except DatabaseError:
+            return 0
 
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -69,8 +75,8 @@ class UserMeSerializer(serializers.ModelSerializer):
 
 class NazoratchiSerializer(serializers.ModelSerializer):
     """Admin nazoratchi yaratish/ko'rish uchun."""
-    password = serializers.CharField(write_only=True, required=False)
-    filial_nomi = serializers.CharField(source='filial.nomi', read_only=True)
+    password = serializers.CharField(write_only=True, required=True, min_length=4)
+    filial_nomi = serializers.SerializerMethodField()
     oquvchilar_soni = serializers.SerializerMethodField()
 
     class Meta:
@@ -78,15 +84,43 @@ class NazoratchiSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'password', 'ism', 'familya', 'filial', 'filial_nomi',
                   'faol', 'created_at', 'oquvchilar_soni']
 
-    def get_oquvchilar_soni(self, obj):
-        return obj.yaratganlari.filter(role=User.ROLE_OQUVCHI).count()
+    def get_filial_nomi(self, obj):
+        try:
+            return obj.filial.nomi if obj.filial_id and obj.filial else ''
+        except (Filial.DoesNotExist, AttributeError):
+            return ''
 
+    def get_oquvchilar_soni(self, obj):
+        annotated = getattr(obj, '_oquvchilar_soni', None)
+        if annotated is not None:
+            return int(annotated)
+        try:
+            return obj.yaratganlari.filter(role=User.ROLE_OQUVCHI).count()
+        except DatabaseError:
+            # Legacy Railway bazasida yaratgan_id ustuni migratsiya tugaguncha
+            # mavjud bo'lmasligi mumkin. Ro'yxat butunlay 500 bermasin.
+            return 0
+
+    def validate_username(self, value):
+        value = (value or '').strip()
+        if not value:
+            raise serializers.ValidationError('Login majburiy.')
+        queryset = User.objects.filter(username__iexact=value)
+        if self.instance:
+            queryset = queryset.exclude(pk=self.instance.pk)
+        if queryset.exists():
+            raise serializers.ValidationError('Bu login avval ishlatilgan.')
+        return value
+
+    @transaction.atomic
     def create(self, validated_data):
         password = validated_data.pop('password')
-        user = User(**validated_data, role=User.ROLE_NAZORATCHI)
-        user.set_password(password)
-        user.save()
-        return user
+        return User.objects.create_user(
+            password=password,
+            role=User.ROLE_NAZORATCHI,
+            is_active=True,
+            **validated_data,
+        )
 
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)

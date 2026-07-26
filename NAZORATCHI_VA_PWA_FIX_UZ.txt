@@ -1,0 +1,19 @@
+NAZORATCHI API VA PWA TUZATILDI
+
+1. Railway eski PostgreSQL bazasida users.filial_id yoki users.yaratgan_id
+   ustunlari yo'q bo'lsa, accounts.0004 migratsiyasi ularni xavfsiz qo'shadi.
+2. /api/admin/nazoratchilar/ ro'yxati optimallashtirildi va vaqtinchalik DB
+   muammosida tushunarli 503 javob qaytaradi, 500 bilan butun sahifani buzmaydi.
+3. Filial statistikasi legacy bazada vaqtinchalik ustun muammosiga chidamli.
+4. Nazoratchi yaratishda parol majburiy va login takrorlansa aniq xabar chiqadi.
+5. Service worker Railway/API so'rovlarini umuman cache qilmaydi.
+6. Response body already used / clone xatosi tuzatildi.
+7. Eski PWA cache v3 aktiv bo'lganda avtomatik o'chiriladi.
+
+DEPLOY:
+- Fayllarni GitHub repository ichiga Replace qiling.
+- git add .
+- git commit -m "Nazoratchi API va PWA cache tuzatildi"
+- git push origin main
+- Railway va Netlify deploy tugashini kuting.
+- Netlify'da Clear cache and deploy site qilish tavsiya etiladi.

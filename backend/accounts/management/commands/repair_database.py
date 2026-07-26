@@ -5,6 +5,18 @@ from django.db import connection
 from accounts.db_utils import reset_model_sequences
 
 
+def column_exists(cursor, table: str, column: str) -> bool:
+    cursor.execute(
+        """
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = %s AND column_name = %s
+        """,
+        [table, column],
+    )
+    return cursor.fetchone() is not None
+
+
 class Command(BaseCommand):
     help = "Legacy Railway PostgreSQL constraints and serial sequences are repaired safely."
 
@@ -14,13 +26,16 @@ class Command(BaseCommand):
             return
 
         with connection.cursor() as cursor:
-            # Some older production databases had these foreign keys marked
-            # NOT NULL even though the Django model has always allowed null.
-            # Dropping NOT NULL is safe and preserves all existing data.
             cursor.execute("SELECT to_regclass('public.users')")
             if cursor.fetchone()[0]:
-                cursor.execute('ALTER TABLE "users" ALTER COLUMN "filial_id" DROP NOT NULL')
-                cursor.execute('ALTER TABLE "users" ALTER COLUMN "yaratgan_id" DROP NOT NULL')
+                # These columns are created by accounts.0004 when missing. The
+                # command remains defensive so a partially migrated container
+                # never crashes in an endless restart loop.
+                for column in ('filial_id', 'yaratgan_id'):
+                    if column_exists(cursor, 'users', column):
+                        cursor.execute(
+                            f'ALTER TABLE "users" ALTER COLUMN "{column}" DROP NOT NULL'
+                        )
 
         updated = reset_model_sequences(apps.get_models())
         self.stdout.write(self.style.SUCCESS(f"DB_REPAIR_READY sequences={updated}"))
