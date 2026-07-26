@@ -1,0 +1,19 @@
+RAILWAY DUPLICATE COLUMN TUZATISH
+=================================
+
+Muammo:
+  psycopg.errors.DuplicateColumn: column "tarif" of relation "users" already exists
+
+Sabab:
+  Railway PostgreSQL bazasida tarif va to'lov ustunlari avvalgi deployda
+  yaratilgan, ammo Django migration history'da accounts.0006 hali bajarilmagan.
+
+Tuzatish:
+  backend/accounts/migrations/0006_student_subscription_fields.py endi real
+  users jadvalini tekshiradi. Mavjud ustunlar qayta yaratilmaydi, faqat
+  yetishmagan ustunlar qo'shiladi. Mavjud ma'lumotlar o'chirilmaydi.
+
+Kutiladigan Railway logi:
+  Applying accounts.0006_student_subscription_fields... OK
+  Applying accounts.0007_unify_tarif_and_payment_status... OK
+  KATALOG_READY: 11 ta fan, 29 ta daraja va 103 ta mavzu bazada tayyor.
