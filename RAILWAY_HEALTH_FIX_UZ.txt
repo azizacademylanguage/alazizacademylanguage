@@ -1,0 +1,21 @@
+RAILWAY HEALTHCHECK FIX
+
+Muammo: eski start.sh migration tugashini kutgani uchun Gunicorn vaqtida ochilmagan.
+Railway /health/ dan 200 ololmay, deploymentni Failed qilgan.
+
+Yangi tartib:
+1) Gunicorn darhol $PORT da ishga tushadi.
+2) /health/ database kutmasdan HTTP 200 qaytaradi.
+3) migrate, ensure_admin va seed_languages fonda retry bilan bajariladi.
+4) /ready/ database va admin haqiqatan tayyorligini ko'rsatadi.
+
+Railway Settings:
+- Root Directory: /backend
+- Config File Path: /backend/railway.json
+- Custom Build Command: bo'sh
+- Custom Start Command: bo'sh
+- Healthcheck Path: /health/
+
+Tekshirish:
+https://SIZNING-DOMEN/health/  -> darhol 200
+https://SIZNING-DOMEN/ready/   -> database_ok va admin_ready true bo'lganda 200

@@ -20,9 +20,23 @@ def api_home(request):
 
 
 def health_check(request):
+    """Railway liveness healthcheck: web server ishga tushgan bo'lsa doim 200.
+
+    Database holati bu endpointni bloklamaydi. Railway yangi deploymentni faqat
+    HTTP 200 olganda faollashtiradi, shuning uchun DB diagnostikasi /ready/ da.
+    """
+    return JsonResponse({
+        'status': 'ok',
+        'service': 'alaziz-api',
+    })
+
+
+def readiness_check(request):
+    """Database va admin tayyorligini alohida tekshiradi."""
     database_ok = True
     admin_ready = False
     database_engine = connection.vendor
+    error = ''
     try:
         with connection.cursor() as cursor:
             cursor.execute('SELECT 1')
@@ -34,22 +48,25 @@ def health_check(request):
             faol=True,
             role=User.ROLE_ADMIN,
         ).exists()
-    except Exception:
+    except Exception as exc:
         database_ok = False
+        error = exc.__class__.__name__
 
-    status_code = 200 if database_ok else 503
+    status_code = 200 if database_ok and admin_ready else 503
     return JsonResponse({
-        'status': 'ok' if database_ok else 'error',
+        'status': 'ready' if status_code == 200 else 'starting',
         'service': 'alaziz-api',
         'database': database_engine,
         'database_ok': database_ok,
         'admin_ready': admin_ready,
+        'error': error,
     }, status=status_code)
 
 
 urlpatterns = [
     path('', api_home, name='api-home'),
     path('health/', health_check, name='health-check'),
+    path('ready/', readiness_check, name='readiness-check'),
     path('admin/', admin.site.urls),
     path('api/', include('accounts.urls')),
     path('api/', include('courses.urls')),

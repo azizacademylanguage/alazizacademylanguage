@@ -42,7 +42,7 @@ DEBUG = env_bool('DJANGO_DEBUG', True)
 
 # Railway domeni avtomatik qo'shiladi. Qo'shimcha domenlarni vergul bilan
 # DJANGO_ALLOWED_HOSTS orqali kiriting.
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]', '.railway.app']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]', '.railway.app', 'healthcheck.railway.app']
 ALLOWED_HOSTS += [origin_host(item) for item in env_list('DJANGO_ALLOWED_HOSTS')]
 railway_public_domain = origin_host(os.environ.get('RAILWAY_PUBLIC_DOMAIN', ''))
 if railway_public_domain:
@@ -115,6 +115,10 @@ if DATABASE_URL:
             conn_health_checks=True,
         )
     }
+    if DATABASES['default'].get('ENGINE') == 'django.db.backends.postgresql':
+        DATABASES['default'].setdefault('OPTIONS', {})['connect_timeout'] = int(
+            os.environ.get('DB_CONNECT_TIMEOUT', '5')
+        )
 elif os.environ.get('DB_ENGINE') == 'postgresql':
     # Eski DB_* o'zgaruvchilari bilan ham ishlashda davom etadi.
     DATABASES = {
