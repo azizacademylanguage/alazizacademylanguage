@@ -40,6 +40,10 @@ export default function OquvchilarPage() {
 
   const handleCreate = async (e) => {
     e.preventDefault();
+    if (form.username.trim().toLowerCase() === form.password.trim().toLowerCase()) {
+      showToast("Parol login bilan bir xil bo'lishi mumkin emas.", 'error');
+      return;
+    }
     setSaving(true);
     setErrorMsg('');
     try {

@@ -77,6 +77,11 @@ export default function FoydalanuvchilarPage() {
     setSaving(true);
     setError('');
     try {
+      if (form.password && form.password.trim().toLowerCase() === form.username.trim().toLowerCase()) {
+        setError("Parol login bilan bir xil bo'lishi mumkin emas.");
+        setSaving(false);
+        return;
+      }
       const payload = { ...form };
       if (!payload.password) delete payload.password;
       if (editing.role !== 'oquvchi') {
@@ -140,7 +145,6 @@ export default function FoydalanuvchilarPage() {
           </div>
           <Input label="Login" required value={form.username || ''} onChange={(event) => setForm({ ...form, username: event.target.value })} />
           <Input label="Yangi parol" type="text" minLength={4} value={form.password || ''} onChange={(event) => setForm({ ...form, password: event.target.value })} placeholder="Bo‘sh qoldirilsa eski parol saqlanadi" />
-          <Button type="button" variant="secondary" onClick={() => setForm({ ...form, password: form.username })}>Parolni login bilan bir xil qilish</Button>
 
           {editing?.role === 'oquvchi' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t" style={{ borderColor: 'var(--color-line)' }}>

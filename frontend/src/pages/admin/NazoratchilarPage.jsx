@@ -44,8 +44,12 @@ export default function NazoratchilarPage() {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    setSaving(true);
     setErrorMsg('');
+    if (form.username.trim().toLowerCase() === form.password.trim().toLowerCase()) {
+      setErrorMsg("Parol login bilan bir xil bo'lishi mumkin emas.");
+      return;
+    }
+    setSaving(true);
     try {
       await createNazoratchi(form);
       setForm({ username: '', password: '', ism: '', familya: '', filial: '' });
@@ -53,7 +57,7 @@ export default function NazoratchilarPage() {
       showToast('Nazoratchi qo\'shildi.');
       load();
     } catch (err) {
-      setErrorMsg(err.response?.data?.username?.[0] || 'Xatolik yuz berdi. Ma\'lumotlarni tekshiring.');
+      setErrorMsg(err.response?.data?.password?.[0] || err.response?.data?.username?.[0] || 'Xatolik yuz berdi. Ma\'lumotlarni tekshiring.');
     } finally {
       setSaving(false);
     }

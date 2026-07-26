@@ -3,11 +3,12 @@ import {
   createAdminOquvchi,
   deleteAdminOquvchi,
   getAdminOquvchilar,
+  updateAdminOquvchi,
   getFanlar,
 } from '../../api/admin';
 import { Badge, Button, Card, EmptyState, IconButton, Input, Modal, Select, Skeleton } from '../../components/ui';
 import { useToast } from '../../context/ToastContext';
-import { BookOpen, GraduationCap, KeyRound, Plus, Search, Trash2, UserPlus } from 'lucide-react';
+import { BookOpen, CheckCircle2, GraduationCap, KeyRound, Plus, Search, Trash2, UserPlus } from 'lucide-react';
 import { cleanLevelName } from '../../utils/course';
 
 
@@ -57,6 +58,7 @@ export default function OquvchilarPage() {
   const [fanlar, setFanlar] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [payingId, setPayingId] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [qidiruv, setQidiruv] = useState('');
   const [error, setError] = useState('');
@@ -108,6 +110,14 @@ export default function OquvchilarPage() {
       setError('Fan va darajani tanlash majburiy.');
       return;
     }
+    if (!form.password) {
+      setError('Parol majburiy.');
+      return;
+    }
+    if (form.username.trim().toLowerCase() === form.password.trim().toLowerCase()) {
+      setError("Parol login bilan bir xil bo'lishi mumkin emas.");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -115,7 +125,7 @@ export default function OquvchilarPage() {
         ism: form.ism,
         familya: form.familya,
         username: form.username,
-        password: form.username,
+        password: form.password,
         daraja: Number(form.daraja),
         boshlanish_sana: form.boshlanish_sana || null,
         tugash_sana: form.tugash_sana || null,
@@ -137,6 +147,20 @@ export default function OquvchilarPage() {
       );
     } finally {
       setSaving(false);
+    }
+  };
+
+
+  const handleMarkPaid = async (student) => {
+    setPayingId(student.id);
+    try {
+      await updateAdminOquvchi(student.id, { tolov_holati: 'tolangan' });
+      showToast(`${student.ism || student.username} uchun to'lov holati "To'langan" qilindi.`);
+      await load();
+    } catch (err) {
+      showToast(firstErrorMessage(err.response?.data) || "To'lov holatini yangilashda xatolik yuz berdi.", 'error');
+    } finally {
+      setPayingId(null);
     }
   };
 
@@ -214,7 +238,14 @@ export default function OquvchilarPage() {
                     <Badge tone={student.obuna_holati === 'faol' ? 'success' : student.obuna_holati === 'tugamoqda' ? 'warning' : 'danger'}>{student.obuna_holati || 'faol'}{student.qolgan_kun !== null && student.qolgan_kun !== undefined ? ` · ${student.qolgan_kun} kun` : ''}</Badge>
                   </div>
                 </div>
-                <div className="flex gap-1"><IconButton icon={Trash2} tone="danger" title="O'chirish" onClick={() => handleDelete(student)} /></div>
+                <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
+                  {student.tolov_holati !== 'tolangan' && (
+                    <Button size="sm" onClick={() => handleMarkPaid(student)} loading={payingId === student.id}>
+                      <CheckCircle2 size={14} /> To'landi
+                    </Button>
+                  )}
+                  <IconButton icon={Trash2} tone="danger" title="O'chirish" onClick={() => handleDelete(student)} />
+                </div>
               </div>
             </Card>
           ))}
@@ -225,7 +256,7 @@ export default function OquvchilarPage() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         title="Yangi o'quvchi yaratish"
-        subtitle="Ism-familiya takrorlanishi mumkin. Login noyob, boshlang‘ich parol login bilan bir xil bo‘ladi."
+        subtitle="Ism-familiya takrorlanishi mumkin. Login noyob. Login va parolni admin alohida belgilaydi."
         wide
       >
         <form onSubmit={handleCreate} className="space-y-4">
@@ -234,7 +265,7 @@ export default function OquvchilarPage() {
             <Input label="Familya" required value={form.familya} onChange={(event) => setForm({ ...form, familya: event.target.value })} />
           </div>
           <Input label="Login" required value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} placeholder="masalan: aziza_01" />
-          <Input label="Parol (login bilan bir xil)" type="text" required value={form.username} readOnly placeholder="Avval login kiriting" />
+          <Input label="Parol" type="text" required minLength={4} value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} placeholder="Login bilan bir xil bo‘lmagan parol" />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t" style={{ borderColor: 'var(--color-line)' }}>
             <Select label="Fan" required value={form.fan} onChange={(event) => handleFanChange(event.target.value)}>

@@ -41,6 +41,29 @@ def obuna_sanalarini_toldir(attrs, instance=None):
     return attrs
 
 
+def login_parolni_tekshir(attrs, instance=None, require_password=False):
+    """Admin login va parolni alohida beradi; ular bir xil bo'lishi mumkin emas."""
+    username = (attrs.get('username') or getattr(instance, 'username', '') or '').strip()
+    password = attrs.get('password')
+
+    if require_password and not password:
+        raise serializers.ValidationError({'password': 'Parol majburiy.'})
+
+    if password and username and password.strip().casefold() == username.casefold():
+        raise serializers.ValidationError({
+            'password': "Parol login bilan bir xil bo'lishi mumkin emas. Boshqa parol kiriting."
+        })
+
+    # Login o'zgartirilib, parol o'zgartirilmasa ham yangi login eski parolga
+    # teng bo'lib qolishiga yo'l qo'ymaymiz.
+    if instance is not None and 'username' in attrs and not password and username:
+        if instance.check_password(username):
+            raise serializers.ValidationError({
+                'username': "Yangi login amaldagi parol bilan bir xil bo'lishi mumkin emas."
+            })
+    return attrs
+
+
 class FilialSerializer(serializers.ModelSerializer):
     oquvchilar_soni = serializers.SerializerMethodField()
     nazoratchilar_soni = serializers.SerializerMethodField()
@@ -157,9 +180,12 @@ class NazoratchiSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Bu login avval ishlatilgan.')
         return value
 
+    def validate(self, attrs):
+        return login_parolni_tekshir(attrs, self.instance, require_password=self.instance is None)
+
     @transaction.atomic
     def create(self, validated_data):
-        password = validated_data.pop('password', None) or validated_data.get('username')
+        password = validated_data.pop('password')
         return User.objects.create_user(
             password=password,
             role=User.ROLE_NAZORATCHI,
@@ -169,13 +195,10 @@ class NazoratchiSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)
-        username_changed = 'username' in validated_data and validated_data['username'] != instance.username
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         if password:
             instance.set_password(password)
-        elif username_changed:
-            instance.set_password(validated_data['username'])
         instance.save()
         return instance
 
@@ -239,13 +262,11 @@ class OquvchiSerializer(OquvchiAssignmentMixin, serializers.ModelSerializer):
 
     def validate(self, attrs):
         attrs = obuna_sanalarini_toldir(attrs, self.instance)
-        if self.instance is None and not attrs.get('password'):
-            attrs['password'] = attrs.get('username')
-        return attrs
+        return login_parolni_tekshir(attrs, self.instance, require_password=self.instance is None)
 
     @transaction.atomic
     def create(self, validated_data):
-        password = validated_data.pop('password', None) or validated_data.get('username')
+        password = validated_data.pop('password')
         daraja = validated_data.pop('daraja', None)
         request = self.context['request']
         nazoratchi = request.user
@@ -270,13 +291,10 @@ class OquvchiSerializer(OquvchiAssignmentMixin, serializers.ModelSerializer):
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)
         daraja = validated_data.pop('daraja', None)
-        username_changed = 'username' in validated_data and validated_data['username'] != instance.username
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         if password:
             instance.set_password(password)
-        elif username_changed:
-            instance.set_password(validated_data['username'])
         instance.save()
         if daraja:
             # O'quvchiga faqat bitta tanlangan fan va boshlang'ich daraja saqlanadi.
@@ -334,9 +352,7 @@ class AdminOquvchiSerializer(OquvchiAssignmentMixin, serializers.ModelSerializer
 
     def validate(self, attrs):
         attrs = obuna_sanalarini_toldir(attrs, self.instance)
-        if self.instance is None and not attrs.get('password'):
-            attrs['password'] = attrs.get('username')
-        return attrs
+        return login_parolni_tekshir(attrs, self.instance, require_password=self.instance is None)
 
     def _default_filial(self, admin, requested_filial=None):
         """Student must belong to a branch for manager/shop visibility.
@@ -361,7 +377,7 @@ class AdminOquvchiSerializer(OquvchiAssignmentMixin, serializers.ModelSerializer
     def _create_once(self, validated_data):
         data = dict(validated_data)
         daraja = data.pop('daraja')
-        password = data.pop('password', None) or data.get('username')
+        password = data.pop('password')
         admin = self.context['request'].user
         data['filial'] = self._default_filial(admin, data.get('filial'))
 
@@ -409,13 +425,10 @@ class AdminOquvchiSerializer(OquvchiAssignmentMixin, serializers.ModelSerializer
     def update(self, instance, validated_data):
         daraja = validated_data.pop('daraja', None)
         password = validated_data.pop('password', None)
-        username_changed = 'username' in validated_data and validated_data['username'] != instance.username
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         if password:
             instance.set_password(password)
-        elif username_changed:
-            instance.set_password(validated_data['username'])
         if not instance.filial_id:
             instance.filial = self._default_filial(self.context['request'].user)
         instance.save()
@@ -464,7 +477,8 @@ class AdminFoydalanuvchiSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-        return obuna_sanalarini_toldir(attrs, self.instance)
+        attrs = obuna_sanalarini_toldir(attrs, self.instance)
+        return login_parolni_tekshir(attrs, self.instance, require_password=False)
 
     @transaction.atomic
     def update(self, instance, validated_data):

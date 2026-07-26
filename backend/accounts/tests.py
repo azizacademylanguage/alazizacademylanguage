@@ -78,6 +78,7 @@ class AdminStudentCreateTests(APITestCase):
             'ism': 'Oysha',
             'familya': 'Aliyeva',
             'username': 'oysha_login',
+            'password': 'OyshaSecure45',
             'daraja': self.daraja.id,
             'boshlanish_sana': '2026-01-31',
         }, format='json')
@@ -85,14 +86,15 @@ class AdminStudentCreateTests(APITestCase):
         self.assertEqual(response.status_code, 201, response.data)
         student = User.objects.get(username='oysha_login')
         self.assertEqual(str(student.tugash_sana), '2026-02-28')
-        self.assertTrue(student.check_password('oysha_login'))
+        self.assertTrue(student.check_password('OyshaSecure45'))
 
     def test_same_names_are_allowed_but_login_stays_unique(self):
-        User.objects.create_user(username='first_login', password='first_login', ism='Ali', familya='Valiyev', role=User.ROLE_OQUVCHI)
+        User.objects.create_user(username='first_login', password='FirstSecure45', ism='Ali', familya='Valiyev', role=User.ROLE_OQUVCHI)
         response = self.client.post('/api/admin/oquvchilar/', {
             'ism': 'Ali',
             'familya': 'Valiyev',
             'username': 'second_login',
+            'password': 'SecondSecure45',
             'daraja': self.daraja.id,
         }, format='json')
         self.assertEqual(response.status_code, 201, response.data)
@@ -106,3 +108,43 @@ class AdminStudentCreateTests(APITestCase):
         self.assertEqual(response.status_code, 200, response.data)
         student.refresh_from_db()
         self.assertTrue(student.check_password('newpass123'))
+
+    def test_login_and_password_cannot_be_the_same(self):
+        response = self.client.post('/api/admin/oquvchilar/', {
+            'ism': 'Aziz',
+            'familya': 'Karimov',
+            'username': 'aziz_login',
+            'password': 'AZIZ_LOGIN',
+            'daraja': self.daraja.id,
+        }, format='json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('password', response.data)
+
+    def test_password_is_required_when_admin_creates_student(self):
+        response = self.client.post('/api/admin/oquvchilar/', {
+            'ism': 'Nozima',
+            'familya': 'Aliyeva',
+            'username': 'nozima_login',
+            'daraja': self.daraja.id,
+        }, format='json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('password', response.data)
+
+    def test_admin_can_mark_unpaid_student_as_paid(self):
+        student = User.objects.create_user(
+            username='payment_student',
+            password='PaymentSecure45',
+            role=User.ROLE_OQUVCHI,
+            tolov_holati=User.TOLOV_TOLANMAGAN,
+        )
+        response = self.client.patch(
+            f'/api/admin/oquvchilar/{student.id}/',
+            {'tolov_holati': 'tolangan'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200, response.data)
+        student.refresh_from_db()
+        self.assertEqual(student.tolov_holati, User.TOLOV_TOLANGAN)

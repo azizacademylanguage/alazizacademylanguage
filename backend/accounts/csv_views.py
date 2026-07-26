@@ -92,7 +92,10 @@ class OquvchilarCSVImportView(APIView):
             if not username or not password:
                 xatolar.append(f"Qator {idx}: username yoki password bo'sh")
                 continue
-            if User.objects.filter(username=username).exists():
+            if username.casefold() == password.casefold():
+                xatolar.append(f"Qator {idx}: login va parol bir xil bo'lishi mumkin emas")
+                continue
+            if User.objects.filter(username__iexact=username).exists():
                 xatolar.append(f"Qator {idx}: '{username}' allaqachon mavjud")
                 continue
 
