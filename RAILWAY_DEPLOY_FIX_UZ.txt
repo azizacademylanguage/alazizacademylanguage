@@ -1,0 +1,25 @@
+RAILWAY DEPLOY TUZATISHI
+========================
+
+Muammo: Listening/Speaking katalogini har deployda server ochilishidan oldin to'liq yaratish Railway health-check vaqtini tugatishi mumkin edi.
+
+Tuzatildi:
+- migrate va admin yaratish birinchi bajariladi;
+- Gunicorn tez ishga tushadi;
+- 630 Listening va 63 Speaking ma'lumoti kerak bo'lsa fonda yaratiladi;
+- health-check timeout 300 soniya;
+- Railway Root Directory bo'sh yoki /backend bo'lsa ham command ishlaydi.
+
+GitHubga yuborish:
+  git add .
+  git commit -m "Railway deploy startup tuzatildi"
+  git push origin main
+
+Railway sozlamasi tavsiya:
+  Root Directory: /backend
+  Config File Path: /backend/railway.json
+
+Deploy logida quyidagilar ko'rinadi:
+  ADMIN_READY ... password_check=True
+  Gunicorn ishga tushmoqda...
+  CATALOG_SEED_READY (birinchi deployda keyinroq chiqadi)
