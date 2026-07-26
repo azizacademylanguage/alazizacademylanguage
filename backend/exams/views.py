@@ -7,8 +7,6 @@ from accounts.permissions import IsAdmin, IsOquvchi, IsNazoratchi
 from courses.access import (MAVZU_OTISH_FOIZI, keyingi_mavzu, mavzu_ochiqmi,
                             oquvchiga_fan_biriktirilganmi)
 from .models import Mashq, Savol, Javob, MashqNatija, OquvchiJavob
-from .features import (check_achievements, create_notification, log_faoliyat,
-                       record_test_security, require_payment_or_none)
 from .serializers import (
     MashqSerializer, MashqOquvchigaSerializer, MashqNatijaSerializer,
     OquvchiJavobBatafsilSerializer
@@ -21,13 +19,6 @@ class MashqViewSet(viewsets.ModelViewSet):
     queryset = Mashq.objects.all()
     serializer_class = MashqSerializer
     permission_classes = [IsAdmin]
-
-    def perform_create(self, serializer):
-        if 'otish_bali_foiz' not in self.request.data:
-            from .models import PlatformSozlama
-            serializer.save(otish_bali_foiz=PlatformSozlama.load().standart_test_foizi)
-        else:
-            serializer.save()
 
 
 class SavolViewSet(viewsets.ModelViewSet):
@@ -58,9 +49,6 @@ class MashqOlishView(APIView):
     permission_classes = [IsOquvchi]
 
     def get(self, request, mashq_id):
-        payment_block = require_payment_or_none(request.user)
-        if payment_block:
-            return Response({'detail': "Foydalanish muddati tugagan. Admin bilan bog‘laning.", 'tolov': payment_block}, status=status.HTTP_402_PAYMENT_REQUIRED)
         try:
             mashq = Mashq.objects.select_related('dars__mavzu__daraja').get(id=mashq_id)
         except Mashq.DoesNotExist:
@@ -76,7 +64,6 @@ class MashqOlishView(APIView):
             }, status=status.HTTP_403_FORBIDDEN)
 
         serializer = MashqOquvchigaSerializer(mashq)
-        log_faoliyat(request, 'mashq_boshlandi', mashq.sarlavha, 'mashq', mashq.id)
         return Response(serializer.data)
 
 
@@ -89,9 +76,6 @@ class MashqTopshirishView(APIView):
     permission_classes = [IsOquvchi]
 
     def post(self, request, mashq_id):
-        payment_block = require_payment_or_none(request.user)
-        if payment_block:
-            return Response({'detail': "Foydalanish muddati tugagan.", 'tolov': payment_block}, status=status.HTTP_402_PAYMENT_REQUIRED)
         try:
             mashq = Mashq.objects.select_related('dars__mavzu__daraja').get(id=mashq_id)
         except Mashq.DoesNotExist:
@@ -157,28 +141,13 @@ class MashqTopshirishView(APIView):
         natija.tugagan_vaqt = timezone.now()
         natija.save()
 
-        otish_foizi = int(mashq.otish_bali_foiz or MAVZU_OTISH_FOIZI)
-        coin_qoshildi = 0
-        if foiz >= otish_foizi:
+        if foiz >= MAVZU_OTISH_FOIZI:
             from .coins import coin_qoshish
-            from .models import PlatformSozlama
-            sozlama = PlatformSozlama.load()
-            coin_qoshildi = sozlama.mashq_coin
-            if urinish_raqami == 1:
-                coin_qoshildi += sozlama.birinchi_urinish_bonus
-            if float(foiz) >= 100:
-                coin_qoshildi += sozlama.mukammal_test_bonus
-            coin_qoshish(request.user, coin_qoshildi, 'mashq', f"{mashq.sarlavha} mashqi {foiz}% bilan tugatildi")
-
-        security = record_test_security(request, 'mashq', mashq.id, request.data.get('xavfsizlik'))
-        log_faoliyat(request, 'mashq_yakunlandi', f"{mashq.sarlavha}: {foiz}%", 'mashq', mashq.id, {'foiz': foiz, 'urinish': urinish_raqami, 'shubhali': security.shubhali})
-        check_achievements(request.user, foiz=foiz)
+            coin_qoshish(request.user, 5, 'mashq', f"{mashq.sarlavha} mashqi {foiz}% bilan tugatildi")
 
         data = MashqNatijaSerializer(natija).data
-        data['coin_qoshildi'] = coin_qoshildi
-        data['xavfsizlik_shubhali'] = security.shubhali
-        data['otdi'] = foiz >= otish_foizi
-        data['otish_foizi'] = otish_foizi
+        data['otdi'] = foiz >= MAVZU_OTISH_FOIZI
+        data['otish_foizi'] = MAVZU_OTISH_FOIZI
         data['daraja_id'] = mashq.dars.mavzu.daraja_id
         navbatdagi = keyingi_mavzu(mashq.dars.mavzu)
         data['keyingi_mavzu_id'] = navbatdagi.id if navbatdagi else None
@@ -186,10 +155,8 @@ class MashqTopshirishView(APIView):
         data['xabar'] = (
             "Tabriklaymiz! Keyingi mavzu ochildi."
             if data['keyingi_mavzu_ochildi']
-            else ("Testdan o'tdingiz." if data['otdi'] else f"Keyingi mavzu ochilishi uchun kamida {otish_foizi}% oling.")
+            else ("Testdan o'tdingiz." if data['otdi'] else "Keyingi mavzu ochilishi uchun kamida 80% oling.")
         )
-        if data['keyingi_mavzu_ochildi']:
-            create_notification('Yangi mavzu ochildi', f'{navbatdagi.nomi} mavzusi siz uchun ochildi.', user=request.user, tur='success', link=f'/oquvchi/mavzular/{data["daraja_id"]}')
         return Response(data, status=status.HTTP_201_CREATED)
 
 

@@ -188,7 +188,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'accounts.authentication.TokenVersionJWTAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -224,8 +224,11 @@ if FRONTEND_PUBLIC_URL.startswith(('http://', 'https://')):
     CORS_ALLOWED_ORIGINS.append(FRONTEND_PUBLIC_URL)
 CORS_ALLOWED_ORIGINS = list(dict.fromkeys(CORS_ALLOWED_ORIGINS))
 
-# Netlify deploy-preview manzillarini kerak bo'lsa env orqali regex sifatida bering.
-CORS_ALLOWED_ORIGIN_REGEXES = env_list('CORS_ALLOWED_ORIGIN_REGEXES')
+# Netlify production va deploy-preview domenlari avtomatik ruxsat etiladi.
+# Qo'shimcha regexlarni CORS_ALLOWED_ORIGIN_REGEXES orqali vergul bilan bering.
+CORS_ALLOWED_ORIGIN_REGEXES = [r'^https://[a-zA-Z0-9-]+\.netlify\.app$']
+CORS_ALLOWED_ORIGIN_REGEXES += env_list('CORS_ALLOWED_ORIGIN_REGEXES')
+CORS_ALLOWED_ORIGIN_REGEXES = list(dict.fromkeys(CORS_ALLOWED_ORIGIN_REGEXES))
 CORS_ALLOW_CREDENTIALS = True
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True

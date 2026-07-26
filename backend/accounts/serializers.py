@@ -5,7 +5,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from courses.models import Daraja, OquvchiFan
 from courses.utils import toza_daraja_nomi
-from .models import Filial, KirishTarixi
+from .models import Filial
 
 User = get_user_model()
 
@@ -33,47 +33,18 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
         token['role'] = user.role
         token['username'] = user.username
-        token['token_version'] = user.token_version
         return token
 
     def validate(self, attrs):
-        request = self.context.get('request')
-        username = attrs.get(self.username_field, '')
-        ip_manzil = None
-        user_agent = ''
-        if request:
-            forwarded = request.META.get('HTTP_X_FORWARDED_FOR', '')
-            ip_manzil = (forwarded.split(',')[0].strip() if forwarded else request.META.get('REMOTE_ADDR')) or None
-            user_agent = request.META.get('HTTP_USER_AGENT', '')[:500]
-        try:
-            data = super().validate(attrs)
-        except Exception:
-            KirishTarixi.objects.create(
-                user=User.objects.filter(username=username).first(),
-                username=username,
-                muvaffaqiyatli=False,
-                ip_manzil=ip_manzil,
-                user_agent=user_agent,
-            )
-            raise
-
+        data = super().validate(attrs)
         user = self.user
-        KirishTarixi.objects.create(
-            user=user,
-            username=user.username,
-            muvaffaqiyatli=True,
-            ip_manzil=ip_manzil,
-            user_agent=user_agent,
-        )
-        try:
-            from exams.features import log_faoliyat, check_achievements
-            if request:
-                log_faoliyat(request, 'kirish', 'Platformaga muvaffaqiyatli kirildi')
-                if user.role == User.ROLE_OQUVCHI:
-                    check_achievements(user)
-        except Exception:
-            # Yangi migratsiyalar hali bajarilmagan birinchi deployda loginni to'xtatmaydi.
-            pass
+        if user.role == User.ROLE_OQUVCHI:
+            try:
+                from exams.engagement import faollik_qayd_et
+                faollik_qayd_et(user, 'kirish')
+            except Exception:
+                # Login migratsiya yoki vaqtinchalik DB muammosi sabab to'xtab qolmasin.
+                pass
         data['user'] = {
             'id': user.id,
             'username': user.username,

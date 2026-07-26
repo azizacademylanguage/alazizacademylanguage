@@ -4,10 +4,8 @@ from .models import (
     GateTest, GateTestSavol, GateTestJavob, GateTestNatija,
     FinalTest, FinalTestSavol, FinalTestJavob, FinalTestNatija, Sertifikat,
     WritingTopshiriq, WritingNatija, SpeakingTopshiriq, SpeakingNatija,
-    OquvchiCoin, CoinTarix, ShopMahsulot, ShopBuyurtma, SozJuftligi, AdminAmalLog,
-    AIYordamchiXabar, Murojaat, MurojaatJavob, PlatformSozlama,
-    Bildirishnoma, BildirishnomaOqildi, PlacementNatija, TestXavfsizlikLog,
-    FaoliyatLog, OquvchiKunlikFaollik, Yutuq, OquvchiYutuq, Tolov, TezkorOyiniSessiya,
+    OquvchiCoin, CoinTarix, ShopMahsulot, ShopBuyurtma, SozJuftligi, SozOyiniSessiya, AdminAmalLog,
+    ListeningSavol, ListeningNatija, KunlikFaollik, Bildirishnoma,
 )
 
 
@@ -145,6 +143,12 @@ class SozJuftligiAdmin(admin.ModelAdmin):
     search_fields = ['chet_soz', 'uzbek_soz']
 
 
+@admin.register(SozOyiniSessiya)
+class SozOyiniSessiyaAdmin(admin.ModelAdmin):
+    list_display = ['id', 'oquvchi', 'fan', 'topilgan_soni', 'berilgan_coin', 'tugallangan', 'created_at']
+    list_filter = ['fan', 'tugallangan']
+
+
 # ==================== AUDIT LOG ====================
 
 @admin.register(AdminAmalLog)
@@ -154,71 +158,28 @@ class AdminAmalLogAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at']
 
 
-# ==================== AI / MUROJAAT / SOZLAMALAR ====================
+# ==================== LISTENING / FAOLLIK / BILDIRISHNOMALAR ====================
 
-@admin.register(AIYordamchiXabar)
-class AIYordamchiXabarAdmin(admin.ModelAdmin):
-    list_display = ['id', 'oquvchi', 'role', 'created_at']
-    list_filter = ['role']
-    search_fields = ['oquvchi__username', 'matn']
-
-
-class MurojaatJavobInline(admin.TabularInline):
-    model = MurojaatJavob
-    extra = 0
-    readonly_fields = ['created_at']
+@admin.register(ListeningSavol)
+class ListeningSavolAdmin(admin.ModelAdmin):
+    list_display = ['id', 'dars', 'audio_matn', 'til_kodi', 'tartib']
+    list_filter = ['til_kodi', 'dars__mavzu__daraja__fan']
 
 
-@admin.register(Murojaat)
-class MurojaatAdmin(admin.ModelAdmin):
-    list_display = ['kod', 'foydalanuvchi', 'kategoriya', 'status', 'ustuvorlik', 'updated_at']
-    list_filter = ['status', 'kategoriya', 'ustuvorlik']
-    search_fields = ['kod', 'sarlavha', 'foydalanuvchi__username']
-    inlines = [MurojaatJavobInline]
+@admin.register(ListeningNatija)
+class ListeningNatijaAdmin(admin.ModelAdmin):
+    list_display = ['id', 'oquvchi', 'dars', 'foiz', 'created_at']
+    list_filter = ['dars__mavzu__daraja__fan']
 
 
-@admin.register(PlatformSozlama)
-class PlatformSozlamaAdmin(admin.ModelAdmin):
-    list_display = ['platform_nomi', 'ai_yordamchi_faol', 'murojaatlar_faol', 'texnik_rejim', 'updated_at']
+@admin.register(KunlikFaollik)
+class KunlikFaollikAdmin(admin.ModelAdmin):
+    list_display = ['id', 'oquvchi', 'sana', 'faollik_soni', 'updated_at']
+    list_filter = ['sana']
 
-
-# ==================== QO‘SHIMCHA PLATFORM FUNKSIYALARI ====================
 
 @admin.register(Bildirishnoma)
 class BildirishnomaAdmin(admin.ModelAdmin):
-    list_display = ['id', 'sarlavha', 'target_turi', 'tur', 'faol', 'created_at']
-    list_filter = ['target_turi', 'tur', 'faol']
-    search_fields = ['sarlavha', 'matn']
-
-admin.site.register(BildirishnomaOqildi)
-
-@admin.register(PlacementNatija)
-class PlacementNatijaAdmin(admin.ModelAdmin):
-    list_display = ['id', 'oquvchi', 'fan', 'foiz', 'tavsiya_daraja', 'tasdiqlangan', 'created_at']
-    list_filter = ['fan', 'tavsiya_daraja']
-
-@admin.register(TestXavfsizlikLog)
-class TestXavfsizlikLogAdmin(admin.ModelAdmin):
-    list_display = ['id', 'oquvchi', 'test_turi', 'davomiylik_soniya', 'sahifadan_chiqish_soni', 'shubhali', 'created_at']
-    list_filter = ['test_turi', 'shubhali']
-
-@admin.register(FaoliyatLog)
-class FaoliyatLogAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user', 'amal', 'obyekt_turi', 'created_at']
-    list_filter = ['amal', 'user__role']
-    search_fields = ['user__username', 'tavsif']
-
-admin.site.register(OquvchiKunlikFaollik)
-admin.site.register(Yutuq)
-admin.site.register(OquvchiYutuq)
-
-@admin.register(Tolov)
-class TolovAdmin(admin.ModelAdmin):
-    list_display = ['id', 'oquvchi', 'summa', 'tolangan_summa', 'status', 'boshlanish_sana', 'tugash_sana']
-    list_filter = ['status', 'tugash_sana']
-    search_fields = ['oquvchi__username', 'oquvchi__ism', 'oquvchi__familya']
-
-@admin.register(TezkorOyiniSessiya)
-class TezkorOyiniSessiyaAdmin(admin.ModelAdmin):
-    list_display = ['id', 'oquvchi', 'fan', 'togri_soni', 'berilgan_coin', 'tugallangan', 'created_at']
-    list_filter = ['fan', 'tugallangan']
+    list_display = ['id', 'oquvchi', 'sarlavha', 'tur', 'oqilgan', 'created_at']
+    list_filter = ['tur', 'oqilgan']
+    search_fields = ['oquvchi__username', 'sarlavha', 'matn']

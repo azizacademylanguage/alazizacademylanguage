@@ -6,6 +6,7 @@ import { getSpeakingTopshiriqlar } from '../../api/writingSpeaking';
 import { Card, Button, Skeleton } from '../../components/ui';
 import WritingTask from '../../components/WritingTask';
 import SpeakingTask from '../../components/SpeakingTask';
+import ListeningExercise from '../../components/ListeningExercise';
 import { ChevronLeft, CheckCircle2, ListChecks } from 'lucide-react';
 
 export default function DarsPage() {
@@ -109,6 +110,8 @@ export default function DarsPage() {
           <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: 'var(--color-ink)' }}>{dars.misollar}</p>
         </Card>
       )}
+
+      <ListeningExercise darsId={darsId} />
 
       {writingTopshiriqlar.map((t) => <div key={`w-${t.id}`} className="mb-5"><WritingTask topshiriq={t} /></div>)}
       {speakingTopshiriqlar.map((t) => <div key={`s-${t.id}`} className="mb-5"><SpeakingTask topshiriq={t} /></div>)}

@@ -35,10 +35,3 @@ YANGI IMKONIYATLAR:
 QR KOD DEPLOY SOZLAMASI:
 Backend hostingda FRONTEND_PUBLIC_URL ni frontend saytingiz manziliga qo'ying.
 Masalan: FRONTEND_PUBLIC_URL=https://saytingiz.netlify.app
-
-YANGI MODULLAR (25.07.2026)
----------------------------
-Bildirishnomalar, QR sertifikat holati, Placement Test, test xavfsizligi, faoliyat tarixi,
-yutuqlar va bonus coinlar, to‘lov/muddat nazorati, PWA va backup/tiklash qo‘shildi.
-Eski karta moslashtirish o‘yini olib tashlanib, “Tezkor tarjima” o‘yini qo‘shildi.
-Batafsil: YANGILANISHLAR_4_5_6_7_8_9_11_12_13.txt

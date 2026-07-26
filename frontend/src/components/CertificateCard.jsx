@@ -7,7 +7,6 @@ export default function CertificateCard({ certificate, adminView = false, public
   const meta = languageMeta(certificate.fan_nomi);
   const pdfUrl = apiAssetUrl(certificate.pdf_url);
   const qrUrl = apiAssetUrl(certificate.qr_url);
-  const active = certificate.faol !== false;
 
   return (
     <Card className="certificate-card overflow-hidden">
@@ -30,17 +29,21 @@ export default function CertificateCard({ certificate, adminView = false, public
           <div><ShieldCheck size={15} /><span>{certificate.kod}</span></div>
           {adminView && <div><CheckCircle2 size={15} /><span>Login: {certificate.oquvchi_username}</span></div>}
         </div>
-        {active ? <div className="certificate-qr-wrap">
+        <div className="certificate-qr-wrap">
           <img src={qrUrl} alt={`Sertifikat QR ${certificate.kod}`} className="certificate-qr" />
           <span>Tekshirish uchun skanerlang</span>
-        </div> : <div className="certificate-qr-wrap" style={{ color: 'var(--color-red)' }}><ShieldCheck size={32} /><span>Bekor qilingan</span></div>}
+        </div>
       </div>
 
       <div className="certificate-actions">
-        {active ? <>
-          <a href={pdfUrl} target="_blank" rel="noreferrer" download><Button size="sm"><Download size={15} /> PDF yuklab olish</Button></a>
-          {!publicView && certificate.tekshirish_url && <a href={certificate.tekshirish_url} target="_blank" rel="noreferrer"><Button size="sm" variant="secondary"><ExternalLink size={15} /> Tekshirish</Button></a>}
-        </> : <div className="text-sm font-semibold" style={{ color: 'var(--color-red)' }}>Sertifikat bekor qilingan{certificate.bekor_sabab ? `: ${certificate.bekor_sabab}` : ''}</div>}
+        <a href={pdfUrl} target="_blank" rel="noreferrer" download>
+          <Button size="sm"><Download size={15} /> PDF yuklab olish</Button>
+        </a>
+        {!publicView && certificate.tekshirish_url && (
+          <a href={certificate.tekshirish_url} target="_blank" rel="noreferrer">
+            <Button size="sm" variant="secondary"><ExternalLink size={15} /> Tekshirish</Button>
+          </a>
+        )}
       </div>
     </Card>
   );

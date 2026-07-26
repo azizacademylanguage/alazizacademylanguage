@@ -18,6 +18,12 @@ Django REST backend va React/Vite frontend asosidagi til o‘rganish tizimi.
 - QR kod skanerlanganda sertifikatning ochiq tekshirish sahifasi chiqadi.
 - Admin panelida sertifikatlar, o‘quvchi ism-familyasi, fan, daraja, natija va PDF yuklab olish tugmasi mavjud.
 - Dizaynda `#3C1642`, `#086375`, `#082900`, `#3B6402`, `#117E68` ranglari, soyalar, hover, transition va animatsiyalar ishlatilgan.
+- Har bir darsda 10 savollik Listening mashqi mavjud.
+- Speaking bo‘limida namuna tinglash, mikrofonda aytish va talaffuz aniqligi foizi mavjud.
+- O‘quvchi bosh sahifasida shaxsiy o‘qish rejasi, bugungi dars, haftalik maqsad va qaytarish so‘zlari chiqadi.
+- Kunlik streak yuritiladi; har 7 kunlik faollik uchun 10 coin bonus beriladi.
+- Sertifikat, daraja, test, streak va do‘kon holatlari uchun ichki bildirishnomalar mavjud.
+- Sayt PWA sifatida telefon yoki kompyuter bosh ekraniga o‘rnatiladi.
 
 ## Windows PowerShell orqali ishga tushirish
 
@@ -72,7 +78,7 @@ FRONTEND_PUBLIC_URL=https://sizning-saytingiz.uz
 Frontend API manzilini o‘zgartirish uchun:
 
 ```env
-VITE_API_BASE=https://backend-domeningiz.uz/api
+VITE_API_BASE_URL=https://backend-domeningiz.uz
 ```
 
 ## Tekshiruv buyruqlari
@@ -93,3 +99,5 @@ npm run build
 ## Railway + Netlify production
 
 Tayyor production sozlamalari va qadamlar: `DEPLOY_RAILWAY_NETLIFY_UZ.md`.
+
+Yangi Listening, Speaking, reja, streak, bildirishnoma va PWA bo‘yicha qo‘llanma: `YANGI_FUNKSiyalar_3_4_5_6_9_10.md`.

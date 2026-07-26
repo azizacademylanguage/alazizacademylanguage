@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   createAdminOquvchi,
   deleteAdminOquvchi,
@@ -8,7 +7,7 @@ import {
 } from '../../api/admin';
 import { Badge, Button, Card, EmptyState, IconButton, Input, Modal, Select, Skeleton } from '../../components/ui';
 import { useToast } from '../../context/ToastContext';
-import { BarChart3, BookOpen, GraduationCap, KeyRound, Plus, Search, Trash2, UserPlus } from 'lucide-react';
+import { BookOpen, GraduationCap, KeyRound, Plus, Search, Trash2, UserPlus } from 'lucide-react';
 import { cleanLevelName } from '../../utils/course';
 
 const emptyForm = {
@@ -22,7 +21,6 @@ const emptyForm = {
 
 export default function OquvchilarPage() {
   const { showToast } = useToast();
-  const navigate = useNavigate();
   const [oquvchilar, setOquvchilar] = useState([]);
   const [fanlar, setFanlar] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -182,14 +180,6 @@ export default function OquvchilarPage() {
                 </div>
                 <IconButton icon={Trash2} tone="danger" title="O'chirish" onClick={() => handleDelete(student)} />
               </div>
-              <button
-                type="button"
-                onClick={() => navigate(`/admin/oquvchilar/${student.id}/progress`)}
-                className="mt-4 w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all hover:-translate-y-0.5"
-                style={{ borderColor: 'var(--color-line)', color: 'var(--color-forest)', background: '#FCFBF7' }}
-              >
-                <BarChart3 size={16} /> Mavzular va natijalarni ko‘rish
-              </button>
             </Card>
           ))}
         </div>

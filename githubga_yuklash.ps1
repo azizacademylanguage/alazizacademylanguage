@@ -1,49 +1,47 @@
 $ErrorActionPreference = "Stop"
 $RepoUrl = "https://github.com/azizacademylanguage/alazizacademylanguage.git"
 
+function Run-Git {
+    param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments)
+    & git @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "Git buyrug'i xato bilan tugadi: git $($Arguments -join ' ')"
+    }
+}
+
 Write-Host "AL-AZIZ loyihasini GitHub'ga yuklash boshlandi..." -ForegroundColor Cyan
 
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Write-Host "XATO: Git kompyuterga o'rnatilmagan." -ForegroundColor Red
-    Write-Host "Git for Windows'ni o'rnating va terminalni qayta oching."
     exit 1
 }
 
 Set-Location $PSScriptRoot
 
 if (-not (Test-Path ".git")) {
-    git init
+    Run-Git init
 }
 
-git branch -M main
+Run-Git branch -M main
 
-$originExists = git remote 2>$null | Select-String -SimpleMatch "origin"
+$originExists = (& git remote 2>$null) -contains "origin"
 if ($originExists) {
-    git remote set-url origin $RepoUrl
+    Run-Git remote set-url origin $RepoUrl
 } else {
-    git remote add origin $RepoUrl
+    Run-Git remote add origin $RepoUrl
 }
 
-git add .
+Run-Git add .
 
 $hasChanges = git status --porcelain
 if ($hasChanges) {
-    try {
-        git commit -m "AL-AZIZ language platform: Railway and Netlify ready"
-    } catch {
-        Write-Host "Commit yaratilmadi. Git ism/email sozlanmagan bo'lishi mumkin." -ForegroundColor Yellow
-        Write-Host "Masalan:" -ForegroundColor Yellow
-        Write-Host 'git config --global user.name "Aziz Academy"'
-        Write-Host 'git config --global user.email "EMAILINGIZ@gmail.com"'
-        exit 1
-    }
+    Run-Git commit -m "Fix Railway admin login and deployment startup"
 } else {
     Write-Host "Yangi o'zgarish topilmadi; mavjud commit yuboriladi." -ForegroundColor Yellow
 }
 
-Write-Host "GitHub'ga yuborilmoqda. Login oynasi chiqsa GitHub hisobingiz bilan kiring..." -ForegroundColor Cyan
+Write-Host "GitHub'ga yuborilmoqda..." -ForegroundColor Cyan
+Run-Git push -u origin main
 
-git push -u origin main
-
-Write-Host "TAYYOR: loyiha GitHub'ga joylandi." -ForegroundColor Green
+Write-Host "TAYYOR: GitHub push muvaffaqiyatli tugadi." -ForegroundColor Green
 Write-Host $RepoUrl -ForegroundColor Green

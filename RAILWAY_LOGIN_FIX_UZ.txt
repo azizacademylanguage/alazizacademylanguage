@@ -1,0 +1,36 @@
+RAILWAY LOGIN TUZATISH
+======================
+
+Bu versiyada SSH, Railway CLI yoki manage.py shell kerak emas.
+
+1) Shu papkadagi kodni GitHub repositoryga push qiling.
+2) Railway GitHub bilan ulangan bo'lsa avtomatik redeploy boshlanadi.
+3) Railway Deploy Logs oxirida quyidagi satr chiqishi shart:
+
+   ADMIN_READY username=admin ... password_check=True active=True role=admin
+
+4) Railway health manzilini oching:
+
+   https://SIZNING-DOMENINGIZ/health/
+
+Natijada:
+
+   "database_ok": true
+   "admin_ready": true
+
+bo'lishi kerak.
+
+5) Netlify saytida kiring:
+
+   Login: admin
+   Parol: admin12345
+
+Railway Variables ichida xohlasangiz:
+
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=admin12345
+RESET_ADMIN_PASSWORD=True
+
+kiritishingiz mumkin. Kiritilmasa ham ushbu standart login avtomatik yaratiladi.
+
+MUHIM: login ishlagach xavfsizlik uchun ADMIN_PASSWORD ni kuchli parolga almashtiring.

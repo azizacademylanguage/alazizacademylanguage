@@ -33,13 +33,6 @@ export default function CertificateVerifyPage() {
             <p className="font-display font-bold text-lg" style={{ color: 'var(--color-ink)' }}>Sertifikat haqiqiy emas</p>
             <p className="text-sm mt-1" style={{ color: 'var(--color-muted)' }}>{error}</p>
           </Card>
-        ) : certificate.haqiqiy === false ? (
-          <Card className="p-10 text-center">
-            <CircleX size={42} className="mx-auto mb-4" style={{ color: 'var(--color-red)' }} />
-            <p className="font-display font-bold text-lg" style={{ color: 'var(--color-ink)' }}>Sertifikat bekor qilingan</p>
-            <p className="text-sm mt-2" style={{ color: 'var(--color-muted)' }}>Kod: {certificate.kod}</p>
-            {certificate.bekor_sabab && <p className="text-sm mt-2" style={{ color: 'var(--color-red)' }}>Sabab: {certificate.bekor_sabab}</p>}
-          </Card>
         ) : (
           <>
             <div className="verified-banner"><BadgeCheck size={19} /> Ushbu sertifikat bazada mavjud va haqiqiy.</div>

@@ -9,7 +9,8 @@ from .models import (
     GateTest, GateTestSavol, GateTestJavob, GateTestNatija,
     FinalTest, FinalTestSavol, FinalTestJavob, FinalTestNatija, Sertifikat,
     WritingTopshiriq, WritingNatija, SpeakingTopshiriq, SpeakingNatija,
-    OquvchiCoin, CoinTarix, ShopMahsulot, ShopBuyurtma, SozJuftligi, AdminAmalLog,
+    OquvchiCoin, CoinTarix, ShopMahsulot, ShopBuyurtma, SozJuftligi, SozOyiniSessiya, AdminAmalLog,
+    ListeningSavol, ListeningNatija, KunlikFaollik, Bildirishnoma,
 )
 from courses.utils import toza_daraja_nomi
 
@@ -55,7 +56,7 @@ class GateTestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = GateTest
-        fields = ['id', 'daraja', 'daraja_nomi', 'sarlavha', 'vaqt_chegarasi_daq', 'savollar']
+        fields = ['id', 'daraja', 'daraja_nomi', 'sarlavha', 'savollar']
 
 
 class GateTestOquvchigaSerializer(serializers.ModelSerializer):
@@ -63,12 +64,7 @@ class GateTestOquvchigaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = GateTest
-        fields = ['id', 'sarlavha', 'vaqt_chegarasi_daq', 'savollar']
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        random.shuffle(data['savollar'])
-        return data
+        fields = ['id', 'sarlavha', 'savollar']
 
 
 class GateTestNatijaSerializer(serializers.ModelSerializer):
@@ -118,7 +114,7 @@ class FinalTestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FinalTest
-        fields = ['id', 'daraja', 'daraja_nomi', 'sarlavha', 'vaqt_chegarasi_daq', 'otish_bali_foiz', 'savollar']
+        fields = ['id', 'daraja', 'daraja_nomi', 'sarlavha', 'otish_bali_foiz', 'savollar']
 
 
 class FinalTestOquvchigaSerializer(serializers.ModelSerializer):
@@ -128,12 +124,7 @@ class FinalTestOquvchigaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FinalTest
-        fields = ['id', 'sarlavha', 'vaqt_chegarasi_daq', 'otish_bali_foiz', 'fan_nomi', 'daraja_nomi', 'savollar']
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        random.shuffle(data['savollar'])
-        return data
+        fields = ['id', 'sarlavha', 'otish_bali_foiz', 'fan_nomi', 'daraja_nomi', 'savollar']
 
     def get_daraja_nomi(self, obj):
         return toza_daraja_nomi(obj.daraja.nomi)
@@ -153,7 +144,7 @@ class SertifikatSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'oquvchi', 'oquvchi_ism', 'oquvchi_username', 'daraja',
             'daraja_nomi', 'fan_nomi', 'kod', 'foiz', 'berilgan_sana',
-            'pdf_url', 'qr_url', 'tekshirish_url', 'faol', 'bekor_qilingan_sana', 'bekor_sabab',
+            'pdf_url', 'qr_url', 'tekshirish_url',
         ]
 
     def get_daraja_nomi(self, obj):
@@ -199,9 +190,19 @@ class WritingNatijaSerializer(serializers.ModelSerializer):
 # ==================== SPEAKING ====================
 
 class SpeakingTopshiriqSerializer(serializers.ModelSerializer):
+    til_kodi = serializers.SerializerMethodField()
+
     class Meta:
         model = SpeakingTopshiriq
-        fields = ['id', 'dars', 'matn', 'tartib']
+        fields = ['id', 'dars', 'matn', 'tartib', 'til_kodi']
+
+    def get_til_kodi(self, obj):
+        nom = obj.dars.mavzu.daraja.fan.nomi.lower()
+        if 'rus' in nom:
+            return 'ru-RU'
+        if 'kore' in nom:
+            return 'ko-KR'
+        return 'en-US'
 
 
 class SpeakingNatijaSerializer(serializers.ModelSerializer):
@@ -209,7 +210,7 @@ class SpeakingNatijaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SpeakingNatija
-        fields = ['id', 'topshiriq', 'topshiriq_matni', 'audio_yozuv', 'ai_foiz', 'ai_izoh',
+        fields = ['id', 'topshiriq', 'topshiriq_matni', 'audio_yozuv', 'transkripsiya', 'ai_foiz', 'ai_izoh',
                    'baholanmoqda', 'created_at']
         read_only_fields = ['ai_foiz', 'ai_izoh', 'baholanmoqda']
 
@@ -272,75 +273,33 @@ class AdminAmalLogSerializer(serializers.ModelSerializer):
         model = AdminAmalLog
         fields = ['id', 'foydalanuvchi', 'foydalanuvchi_ism', 'amal', 'tavsif', 'nishon_user', 'nishon_ism', 'created_at']
 
-# ==================== AI YORDAMCHI / MUROJAAT / SOZLAMA ====================
 
-from .models import AIYordamchiXabar, Murojaat, MurojaatJavob, PlatformSozlama
+# ==================== LISTENING / FAOLLIK / BILDIRISHNOMALAR ====================
 
-
-class AIYordamchiXabarSerializer(serializers.ModelSerializer):
+class ListeningSavolOquvchigaSerializer(serializers.ModelSerializer):
     class Meta:
-        model = AIYordamchiXabar
-        fields = ['id', 'role', 'matn', 'meta', 'created_at']
+        model = ListeningSavol
+        fields = ['id', 'audio_matn', 'savol', 'variantlar', 'til_kodi', 'tartib']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        variants = list(data.get('variantlar') or [])
+        random.shuffle(variants)
+        data['variantlar'] = variants
+        return data
 
 
-class MurojaatJavobSerializer(serializers.ModelSerializer):
-    muallif_ism = serializers.SerializerMethodField()
-    muallif_role = serializers.CharField(source='muallif.role', read_only=True, allow_null=True)
-
-    class Meta:
-        model = MurojaatJavob
-        fields = ['id', 'muallif', 'muallif_ism', 'muallif_role', 'matn', 'created_at']
-        read_only_fields = ['muallif']
-
-    def get_muallif_ism(self, obj):
-        return obj.muallif.full_name if obj.muallif else 'Tizim'
-
-
-class MurojaatSerializer(serializers.ModelSerializer):
-    foydalanuvchi_ism = serializers.CharField(source='foydalanuvchi.full_name', read_only=True)
-    username = serializers.CharField(source='foydalanuvchi.username', read_only=True)
-    filial_nomi = serializers.CharField(source='foydalanuvchi.filial.nomi', read_only=True, allow_null=True)
-    kategoriya_display = serializers.CharField(source='get_kategoriya_display', read_only=True)
-    status_display = serializers.CharField(source='get_status_display', read_only=True)
-    ustuvorlik_display = serializers.CharField(source='get_ustuvorlik_display', read_only=True)
-    javoblar = MurojaatJavobSerializer(many=True, read_only=True)
-    javoblar_soni = serializers.SerializerMethodField()
+class ListeningNatijaSerializer(serializers.ModelSerializer):
+    dars_nomi = serializers.CharField(source='dars.sarlavha', read_only=True)
 
     class Meta:
-        model = Murojaat
-        fields = [
-            'id', 'kod', 'foydalanuvchi', 'foydalanuvchi_ism', 'username', 'filial_nomi',
-            'kategoriya', 'kategoriya_display', 'sarlavha', 'matn', 'status', 'status_display',
-            'ustuvorlik', 'ustuvorlik_display', 'oxirgi_javob_adminniki', 'javoblar_soni',
-            'javoblar', 'created_at', 'updated_at', 'closed_at',
-        ]
-        read_only_fields = ['kod', 'foydalanuvchi', 'status', 'ustuvorlik', 'oxirgi_javob_adminniki', 'closed_at']
-
-    def get_javoblar_soni(self, obj):
-        return obj.javoblar.count()
+        model = ListeningNatija
+        fields = ['id', 'dars', 'dars_nomi', 'togri_soni', 'jami_soni', 'foiz', 'created_at']
 
 
-class PlatformSozlamaSerializer(serializers.ModelSerializer):
-    updated_by_ism = serializers.CharField(source='updated_by.full_name', read_only=True, allow_null=True)
+class BildirishnomaSerializer(serializers.ModelSerializer):
+    tur_display = serializers.CharField(source='get_tur_display', read_only=True)
 
     class Meta:
-        model = PlatformSozlama
-        fields = [
-            'id', 'platform_nomi', 'platform_qisqa_nomi', 'logo_url', 'ai_yordamchi_faol',
-            'ai_kunlik_limit', 'murojaatlar_faol', 'texnik_rejim', 'texnik_xabar',
-            'max_fayl_mb', 'standart_test_foizi', 'mashq_coin', 'final_test_coin',
-            'tezkor_oyin_har_javob_coin', 'tezkor_oyin_mukammal_bonus',
-            'birinchi_urinish_bonus', 'mukammal_test_bonus', 'bildirishnomalar_faol',
-            'tolov_nazorati_faol', 'tolov_ogohlantirish_kun', 'xavfsizlik_eslatmasi', 'updated_by', 'updated_by_ism', 'updated_at',
-        ]
-        read_only_fields = ['updated_by', 'updated_at']
-
-    def validate_ai_kunlik_limit(self, value):
-        if value > 500:
-            raise serializers.ValidationError('Kunlik limit 500 tadan oshmasin.')
-        return value
-
-    def validate_standart_test_foizi(self, value):
-        if value < 1 or value > 100:
-            raise serializers.ValidationError("Foiz 1 dan 100 gacha bo'lishi kerak.")
-        return value
+        model = Bildirishnoma
+        fields = ['id', 'sarlavha', 'matn', 'tur', 'tur_display', 'havola', 'oqilgan', 'created_at']

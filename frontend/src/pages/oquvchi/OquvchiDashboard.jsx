@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { getFanlarim, getNatijalarim } from '../../api/oquvchi';
 import { getCoinlarim } from '../../api/coinShop';
+import { getOqishRejasi } from '../../api/engagement';
 import { useAuth } from '../../context/AuthContext';
 import { Card, StatCard, Skeleton } from '../../components/ui';
 import SelectedCoursePanel from '../../components/SelectedCoursePanel';
-import PwaInstallCard from '../../components/PwaInstallCard';
-import { Award, ClipboardCheck, Coins, LineChart as LineChartIcon, TrendingUp } from 'lucide-react';
+import PersonalLearningPlan from '../../components/PersonalLearningPlan';
+import PWAInstallButton from '../../components/PWAInstallButton';
+import { Flame, ClipboardCheck, Coins, LineChart as LineChartIcon, TrendingUp, Smartphone } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 function CustomTooltip({ active, payload, label }) {
@@ -23,14 +25,16 @@ export default function OquvchiDashboard() {
   const [fanlar, setFanlar] = useState([]);
   const [natijalar, setNatijalar] = useState([]);
   const [coin, setCoin] = useState(0);
+  const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([getFanlarim(), getNatijalarim(), getCoinlarim()])
-      .then(([f, n, c]) => {
+    Promise.all([getFanlarim(), getNatijalarim(), getCoinlarim(), getOqishRejasi()])
+      .then(([f, n, c, p]) => {
         setFanlar(f);
         setNatijalar(n);
         setCoin(c.balans);
+        setPlan(p);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -59,19 +63,29 @@ export default function OquvchiDashboard() {
         <div className="welcome-orb" aria-hidden="true">✦</div>
       </div>
 
-      <PwaInstallCard />
-
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24 w-full" />)}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <StatCard label="Tanlangan fan" value={selectedCourse ? 1 : 0} icon={Award} accent="teal" delay={0} />
+          <StatCard label="Kunlik streak" value={`${plan?.streak?.joriy || 0} kun`} icon={Flame} accent="teal" delay={0} />
           <StatCard label="Tugatilgan daraja" value={completedLevels} icon={TrendingUp} accent="olive" delay={80} />
           <StatCard label="Yechilgan test" value={natijalar.length} icon={ClipboardCheck} accent="amethyst" delay={160} />
           <StatCard label="Coin" value={coin} icon={Coins} accent="jungle" delay={240} />
         </div>
+      )}
+
+      {!loading && plan?.fan && <PersonalLearningPlan plan={plan} />}
+
+      {!loading && (
+        <Card className="p-4 mb-6 pwa-dashboard-card">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="feature-icon feature-icon--olive"><Smartphone size={18} /></div>
+            <div className="min-w-0 flex-1"><p className="font-display font-bold text-sm" style={{ color: 'var(--color-ink)' }}>Saytni telefon ilovasi sifatida ishlating</p><p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>Bosh ekranga o‘rnating va tezroq oching.</p></div>
+            <PWAInstallButton />
+          </div>
+        </Card>
       )}
 
       {loading ? (

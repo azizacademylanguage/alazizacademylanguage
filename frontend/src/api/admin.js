@@ -31,7 +31,6 @@ export const createSavol = (data) => client.post('/admin/savollar/', data).then(
 export const createJavob = (data) => client.post('/admin/javoblar/', data).then(r => r.data);
 
 export const getAdminOquvchilar = () => client.get('/admin/oquvchilar/').then(r => r.data);
-export const getAdminOquvchiProgress = (id) => client.get(`/admin/oquvchilar/${id}/progress/`).then(r => r.data);
 export const createAdminOquvchi = (data) => client.post('/admin/oquvchilar/', data).then(r => r.data);
 export const updateAdminOquvchi = (id, data) => client.patch(`/admin/oquvchilar/${id}/`, data).then(r => r.data);
 export const deleteAdminOquvchi = (id) => client.delete(`/admin/oquvchilar/${id}/`);

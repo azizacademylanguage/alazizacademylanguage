@@ -7,6 +7,7 @@ from courses.utils import toza_daraja_nomi
 from exams.models import (
     FinalTest, FinalTestJavob, FinalTestSavol,
     Javob, Mashq, Savol, ShopMahsulot, SozJuftligi,
+    ListeningSavol, SpeakingTopshiriq, Bildirishnoma,
 )
 
 
@@ -24,6 +25,8 @@ LANGUAGES = {
     'English': {
         'description': "Ingliz tilini alifbodan boshlab erkin muloqot va Advanced darajagacha o'rganing.",
         'icon': 'GB',
+        'lang_code': 'en-US',
+        'speaking': 'Hello, I study English every day and I enjoy learning new words.',
         'topics': {
             'Starter': ['Alphabet and Sounds', 'Greetings and Introductions', 'Numbers and Basic Words'],
             'Beginner': ['Present Simple', 'Daily Routine', 'Basic Questions'],
@@ -42,6 +45,8 @@ LANGUAGES = {
     'Rus tili': {
         'description': "Rus tilini alifbo va oddiy suhbatdan boshlab ravon nutq darajasigacha o'rganing.",
         'icon': 'RU',
+        'lang_code': 'ru-RU',
+        'speaking': 'Здравствуйте, я каждый день изучаю русский язык и повторяю новые слова.',
         'topics': {
             'Starter': ['Rus alifbosi', 'Salomlashish va tanishish', 'Sonlar va asosiy so‘zlar'],
             'Beginner': ['Otlarning jinsi', 'Hozirgi zamon', 'Oddiy savollar'],
@@ -60,6 +65,8 @@ LANGUAGES = {
     'Koreys tili': {
         'description': "Hangul alifbosidan boshlab TOPIK va professional koreys tili darajasigacha o'rganing.",
         'icon': 'KR',
+        'lang_code': 'ko-KR',
+        'speaking': '안녕하세요. 저는 매일 한국어를 공부하고 새로운 단어를 연습합니다.',
         'topics': {
             'Starter': ['Hangul harflari', 'Salomlashish va tanishish', 'Sonlar va asosiy so‘zlar'],
             'Beginner': ['Oddiy gap tuzilishi', 'Hozirgi zamon', 'Asosiy qo‘shimchalar'],
@@ -106,6 +113,8 @@ class Command(BaseCommand):
                         topic_name=topic_name,
                         topic_order=topic_order,
                         words=data['words'],
+                        lang_code=data['lang_code'],
+                        speaking_text=data['speaking'],
                     )
                 self._create_final_test(level, data['topics'][level_name], data['words'])
 
@@ -121,9 +130,18 @@ class Command(BaseCommand):
                 biriktirgan=admin,
                 qolda_ochilgan=True,
             )
+            Bildirishnoma.objects.get_or_create(
+                oquvchi=demo,
+                sarlavha='Platformaga xush kelibsiz!',
+                defaults={
+                    'matn': 'Bugungi shaxsiy rejangizni oching, listening va speaking mashqlarini bajaring.',
+                    'tur': 'info',
+                    'havola': '/oquvchi',
+                },
+            )
 
         self.stdout.write(self.style.SUCCESS(
-            f"Tayyor: 3 ta fan, {len(created_levels)} ta daraja, QR sertifikat, 10 juftlik so‘z o‘yini va coin do‘koni."
+            f"Tayyor: 3 ta fan, {len(created_levels)} ta daraja, Listening, Speaking, QR sertifikat, streak va PWA ma'lumotlari."
         ))
         if not catalog_only:
             self.stdout.write("Loginlar: admin/admin12345, nazoratchi1/naz12345, oquvchi1/stud12345")
@@ -237,7 +255,7 @@ class Command(BaseCommand):
         level.save()
         return level
 
-    def _create_topic_content(self, level, topic_name, topic_order, words):
+    def _create_topic_content(self, level, topic_name, topic_order, words, lang_code, speaking_text):
         topic, _ = Mavzu.objects.update_or_create(
             daraja=level,
             tartib=topic_order,
@@ -258,6 +276,32 @@ class Command(BaseCommand):
                 ),
             },
         )
+        ListeningSavol.objects.filter(dars=lesson).delete()
+        for idx, (foreign, uzbek) in enumerate(words[:10], start=1):
+            wrongs = [
+                words[idx % len(words)][1],
+                words[(idx + 2) % len(words)][1],
+                words[(idx + 4) % len(words)][1],
+            ]
+            variants = [uzbek] + [item for item in wrongs if item != uzbek]
+            while len(variants) < 4:
+                variants.append(f'Noto‘g‘ri variant {len(variants)}')
+            ListeningSavol.objects.create(
+                dars=lesson,
+                audio_matn=foreign,
+                savol="Eshitgan so‘zingizning o‘zbekcha tarjimasini tanlang.",
+                variantlar=variants[:4],
+                togri_javob=uzbek,
+                til_kodi=lang_code,
+                tartib=idx,
+            )
+
+        SpeakingTopshiriq.objects.update_or_create(
+            dars=lesson,
+            tartib=1,
+            defaults={'matn': speaking_text},
+        )
+
         mashq, _ = Mashq.objects.update_or_create(
             dars=lesson,
             defaults={

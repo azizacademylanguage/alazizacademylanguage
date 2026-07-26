@@ -1,17 +1,12 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { GraduationCap, LogOut, Wrench } from 'lucide-react';
-import { getPlatformHolati } from '../api/platform';
+import { GraduationCap, LogOut } from 'lucide-react';
+import NotificationBell from './NotificationBell';
+import PWAInstallButton from './PWAInstallButton';
 
 export default function DashboardLayout({ navItems, children, extraSidebarContent }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [platforma, setPlatforma] = useState(null);
-
-  useEffect(() => {
-    getPlatformHolati().then(setPlatforma).catch(() => {});
-  }, []);
 
   const handleLogout = () => {
     logout();
@@ -25,12 +20,12 @@ export default function DashboardLayout({ navItems, children, extraSidebarConten
       <div>
         <div className="flex items-center gap-2.5 mb-8 px-1">
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden"
+            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{ background: 'linear-gradient(135deg, var(--color-amber) 0%, var(--color-amber-dark) 100%)' }}
           >
-            {platforma?.logo_url ? <img src={platforma.logo_url} alt="Logo" className="w-full h-full object-cover" /> : <GraduationCap size={16} color="white" strokeWidth={2.2} />}
+            <GraduationCap size={16} color="white" strokeWidth={2.2} />
           </div>
-          <span className="font-display text-white font-bold text-[15px] tracking-tight truncate">{platforma?.platform_qisqa_nomi || "Bilim Yo'li"}</span>
+          <span className="font-display text-white font-bold text-[15px] tracking-tight">Bilim Yo'li</span>
         </div>
 
         <nav className="space-y-1">
@@ -87,7 +82,7 @@ export default function DashboardLayout({ navItems, children, extraSidebarConten
     <div className="min-h-screen flex" style={{ background: 'var(--color-paper)' }}>
       {/* Desktop sidebar */}
       <aside
-        className="hidden lg:flex w-64 flex-shrink-0 flex-col justify-between p-5 sticky top-0 h-screen overflow-y-auto"
+        className="hidden lg:flex w-64 flex-shrink-0 flex-col justify-between p-5 sticky top-0 h-screen"
         style={{ background: 'linear-gradient(180deg, var(--color-forest) 0%, var(--color-teal) 62%, var(--color-amethyst) 125%)', boxShadow: '12px 0 40px rgba(8,41,0,0.08)' }}
       >
         <SidebarContent />
@@ -97,15 +92,17 @@ export default function DashboardLayout({ navItems, children, extraSidebarConten
       <header className="mobile-topbar lg:hidden">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="mobile-topbar__logo">
-            {platforma?.logo_url ? <img src={platforma.logo_url} alt="Logo" className="w-full h-full object-cover" /> : <GraduationCap size={15} color="white" strokeWidth={2.3} />}
+            <GraduationCap size={15} color="white" strokeWidth={2.3} />
           </div>
           <div className="min-w-0">
-            <p className="font-display text-white font-extrabold text-sm leading-tight truncate">{platforma?.platform_qisqa_nomi || "Bilim Yo'li"}</p>
+            <p className="font-display text-white font-extrabold text-sm leading-tight truncate">Bilim Yo'li</p>
             <p className="text-white/55 text-[10px] leading-tight truncate">{roleLabel}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          {user?.role === 'oquvchi' && <PWAInstallButton compact />}
+          {user?.role === 'oquvchi' && <NotificationBell mobile />}
           <div className="mobile-user-chip" title={user?.full_name || user?.username}>
             {(user?.ism?.[0] || user?.username?.[0] || '?').toUpperCase()}
           </div>
@@ -143,14 +140,14 @@ export default function DashboardLayout({ navItems, children, extraSidebarConten
       </nav>
 
       {/* Content */}
-      <main className="flex-1 min-w-0 overflow-x-hidden">
+      <main className="flex-1 min-w-0 overflow-x-hidden relative">
+        {user?.role === 'oquvchi' && (
+          <div className="desktop-quick-actions hidden lg:flex">
+            <PWAInstallButton compact />
+            <NotificationBell />
+          </div>
+        )}
         <div className="dashboard-content max-w-6xl mx-auto p-4 pt-20 sm:p-6 sm:pt-24 lg:p-8 lg:pt-8">
-          {platforma?.texnik_rejim && (
-            <div className="mb-5 flex items-start gap-3 p-4 rounded-2xl border" style={{ background: '#FFF7E8', borderColor: '#F2D59B', color: '#80633B' }}>
-              <Wrench size={18} className="flex-shrink-0 mt-0.5" />
-              <div><p className="font-semibold text-sm">Texnik rejim</p><p className="text-xs mt-1">{platforma.texnik_xabar}</p></div>
-            </div>
-          )}
           {children}
         </div>
       </main>

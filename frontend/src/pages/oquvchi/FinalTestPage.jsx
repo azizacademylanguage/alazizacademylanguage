@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getFinalTest, topshirFinalTest } from '../../api/gateTest';
 import { Card, Button, ProgressBar, Skeleton } from '../../components/ui';
-import { ChevronLeft, ChevronRight, Trophy, CheckCircle2, XCircle, Award, Coins, Clock3, ShieldAlert } from 'lucide-react';
-import useTestSecurity from '../../hooks/useTestSecurity';
+import { ChevronLeft, ChevronRight, Trophy, CheckCircle2, XCircle, Award, Coins } from 'lucide-react';
 
 export default function FinalTestPage() {
   const { darajaId } = useParams();
@@ -16,7 +15,6 @@ export default function FinalTestPage() {
   const [submitting, setSubmitting] = useState(false);
   const [natija, setNatija] = useState(null);
   const [submitError, setSubmitError] = useState('');
-  const security = useTestSecurity(test?.vaqt_chegarasi_daq || 30);
 
   useEffect(() => {
     getFinalTest(darajaId)
@@ -24,10 +22,6 @@ export default function FinalTestPage() {
       .catch((error) => setLoadError(error?.response?.data?.detail || 'Yakuniy testni yuklab bo‘lmadi.'))
       .finally(() => setLoading(false));
   }, [darajaId]);
-
-  useEffect(() => {
-    if (security.timeExpired && test && !natija && !submitting) handleSubmit();
-  }, [security.timeExpired]);
 
   if (loading) {
     return (
@@ -69,7 +63,7 @@ export default function FinalTestPage() {
         savol: s.id,
         tanlangan_javoblar: javoblar[s.id] || [],
       }));
-      const result = await topshirFinalTest(darajaId, payload, security.getSecurityData());
+      const result = await topshirFinalTest(darajaId, payload);
       setNatija(result);
     } catch (error) {
       setSubmitError(error?.response?.data?.detail || 'Testni yuborishda xatolik yuz berdi.');
@@ -99,7 +93,7 @@ export default function FinalTestPage() {
         {otdi ? (
           <>
             <div className="flex items-center justify-center gap-1.5 text-sm font-semibold mb-1 animate-in-fast stagger-2" style={{ color: 'var(--color-amber-dark)' }}>
-              <Coins size={15} /> +{natija.coin_qoshildi || 0} coin qo‘shildi
+              <Coins size={15} /> +50 coin qo'shildi
             </div>
             <p className="text-sm mb-8 font-semibold animate-in-fast stagger-2" style={{ color: 'var(--color-forest)' }}>
               🎉 {natija.xabar || 'Tabriklaymiz! Sertifikat berildi.'}
@@ -116,7 +110,7 @@ export default function FinalTestPage() {
               <Button className="w-full justify-center">Sertifikatimni ko'rish</Button>
             </Link>
           ) : (
-            <Button onClick={() => { setNatija(null); setJavoblar({}); setCurrentIdx(0); security.reset(); }} className="w-full sm:w-auto justify-center">
+            <Button onClick={() => { setNatija(null); setJavoblar({}); setCurrentIdx(0); }} className="w-full sm:w-auto justify-center">
               Qayta urinish
             </Button>
           )}
@@ -142,9 +136,8 @@ export default function FinalTestPage() {
         Yakuniy test — o'tish bali {test.otish_bali_foiz}%. Muvaffaqiyatli topshirsangiz sertifikat olasiz.
       </p>
 
-      <div className="flex items-center justify-between mb-2 gap-3">
+      <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-medium tabular-nums" style={{ color: '#8A8371' }}>{currentIdx + 1} / {jamiSavol}</span>
-        <div className="flex gap-2"><span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold" style={{ background: '#FFF1D8' }}><Clock3 size={14} /> {security.formattedTime}</span><span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs" style={{ background: security.focusLosses ? '#FBEAE8' : '#F1F5F3' }}><ShieldAlert size={14} /> {security.focusLosses}</span></div>
       </div>
       <ProgressBar value={((currentIdx + 1) / jamiSavol) * 100} tone="amber" />
 

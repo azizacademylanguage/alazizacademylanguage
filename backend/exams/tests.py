@@ -136,7 +136,7 @@ class FinalLevelAndCertificateTests(APITestCase):
         self.assertEqual(admin_response.data[0]['oquvchi_ism'], 'Ali Valiyev')
 
 
-class QuickGameAndShopTests(APITestCase):
+class WordGameAndShopTests(APITestCase):
     def setUp(self):
         from accounts.models import Filial
         from exams.models import ShopMahsulot, SozJuftligi
@@ -174,39 +174,51 @@ class QuickGameAndShopTests(APITestCase):
             nomi='Test kitob', tavsif='Sinov mahsuloti', narx_coin=6, faol=True,
         )
 
-    def test_quick_translation_game_awards_coins_only_once(self):
-        from exams.models import OquvchiCoin, TezkorOyiniSessiya
+    def _correct_pairs(self, cards):
+        grouped = {}
+        for card in cards:
+            grouped.setdefault(card['juftlik_id'], []).append(card['id'])
+        return [
+            {'birinchi': ids[0], 'ikkinchi': ids[1]}
+            for ids in grouped.values()
+        ]
+
+    def test_word_game_awards_ten_coins_only_once(self):
+        from exams.models import OquvchiCoin, SozOyiniSessiya
 
         self.client.force_authenticate(self.student)
-        start = self.client.get('/api/oquvchi/tezkor-oyin/')
+        start = self.client.get('/api/oquvchi/soz-oyini/')
         self.assertEqual(start.status_code, 200, start.data)
-        self.assertEqual(len(start.data['savollar']), 10)
-        self.assertNotIn('togri', start.data['savollar'][0])
+        self.assertEqual(len(start.data['cardlar']), 20)
+        self.assertNotIn('juftlik_id', start.data['cardlar'][0])
 
-        session = TezkorOyiniSessiya.objects.get(token=start.data['token'])
-        answers = [
-            {'savol': question['id'], 'javob': question['togri']}
-            for question in session.savollar
-        ]
+        session = SozOyiniSessiya.objects.get(token=start.data['token'])
+        pairs = self._correct_pairs(session.cardlar)
+        check = self.client.post(
+            f"/api/oquvchi/soz-oyini/{session.token}/tekshirish/",
+            pairs[0],
+            format='json',
+        )
+        self.assertEqual(check.status_code, 200, check.data)
+        self.assertTrue(check.data['togri'])
+
         finish = self.client.post(
-            f"/api/oquvchi/tezkor-oyin/{session.token}/yakunlash/",
-            {'javoblar': answers},
+            f"/api/oquvchi/soz-oyini/{session.token}/yakunlash/",
+            {'juftliklar': pairs},
             format='json',
         )
         self.assertEqual(finish.status_code, 200, finish.data)
-        self.assertEqual(finish.data['togri_soni'], 10)
-        self.assertEqual(finish.data['berilgan_coin'], 15)
-        # 15 o'yin coini + bir martalik 10 coinlik "Tezkor tarjimon" yutug'i.
-        self.assertEqual(finish.data['balans'], 25)
+        self.assertEqual(finish.data['berilgan_coin'], 10)
+        self.assertEqual(finish.data['balans'], 10)
 
         second_finish = self.client.post(
-            f"/api/oquvchi/tezkor-oyin/{session.token}/yakunlash/",
-            {'javoblar': answers},
+            f"/api/oquvchi/soz-oyini/{session.token}/yakunlash/",
+            {'juftliklar': pairs},
             format='json',
         )
         self.assertEqual(second_finish.status_code, 200)
         self.assertTrue(second_finish.data['allaqachon_yakunlangan'])
-        self.assertEqual(OquvchiCoin.objects.get(oquvchi=self.student).balans, 25)
+        self.assertEqual(OquvchiCoin.objects.get(oquvchi=self.student).balans, 10)
 
     def test_shop_purchase_is_visible_to_admin_and_same_branch_manager(self):
         from exams.models import OquvchiCoin, ShopBuyurtma
@@ -239,3 +251,104 @@ class QuickGameAndShopTests(APITestCase):
         other_list = self.client.get('/api/boshqaruv/shop-buyurtmalar/')
         self.assertEqual(other_list.status_code, 200)
         self.assertEqual(len(other_list.data), 0)
+
+
+class ListeningSpeakingEngagementTests(APITestCase):
+    def setUp(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from exams.models import ListeningSavol, SpeakingTopshiriq, SozJuftligi, KunlikFaollik, Bildirishnoma
+
+        self.admin = User.objects.create_user(username='eng_admin', password='pass12345', role=User.ROLE_ADMIN)
+        self.student = User.objects.create_user(username='eng_student', password='pass12345', role=User.ROLE_OQUVCHI, ism='Lola')
+        self.fan = Fan.objects.create(nomi='English Engagement', tartib=1)
+        self.level = Daraja.objects.create(fan=self.fan, nomi='Beginner', tartib=1)
+        self.topic = Mavzu.objects.create(daraja=self.level, nomi='Greetings', tartib=1)
+        self.lesson = Dars.objects.create(mavzu=self.topic, sarlavha='Hello lesson', tartib=1)
+        OquvchiFan.objects.create(oquvchi=self.student, daraja=self.level, biriktirgan=self.admin, qolda_ochilgan=True)
+
+        self.listening = []
+        for index in range(10):
+            row = ListeningSavol.objects.create(
+                dars=self.lesson,
+                audio_matn=f'word {index}',
+                savol='Tarjimani tanlang',
+                variantlar=[f'togri-{index}', 'xato-1', 'xato-2', 'xato-3'],
+                togri_javob=f'togri-{index}',
+                til_kodi='en-US',
+                tartib=index + 1,
+            )
+            self.listening.append(row)
+        self.speaking = SpeakingTopshiriq.objects.create(dars=self.lesson, matn='Hello my friend', tartib=1)
+        for index in range(10):
+            SozJuftligi.objects.create(fan=self.fan, chet_soz=f'word-{index}', uzbek_soz=f'soz-{index}', tartib=index + 1)
+
+        # Bugungi kirish bilan birga 7 kunlik streak hosil bo'ladi.
+        for days_ago in range(1, 7):
+            KunlikFaollik.objects.create(
+                oquvchi=self.student,
+                sana=timezone.localdate() - timedelta(days=days_ago),
+                faollik_soni=1,
+                turlar=['dars'],
+            )
+        self.notification = Bildirishnoma.objects.create(
+            oquvchi=self.student,
+            sarlavha='Sinov xabari',
+            matn='Xabar matni',
+            tur='info',
+        )
+
+    def test_listening_is_server_checked_and_saved(self):
+        from exams.models import ListeningNatija
+        self.client.force_authenticate(self.student)
+        get_response = self.client.get(f'/api/oquvchi/listening/{self.lesson.id}/')
+        self.assertEqual(get_response.status_code, 200, get_response.data)
+        self.assertEqual(len(get_response.data['savollar']), 10)
+        self.assertNotIn('togri_javob', get_response.data['savollar'][0])
+
+        answers = [
+            {'savol': item.id, 'javob': item.togri_javob if index < 8 else 'xato'}
+            for index, item in enumerate(self.listening)
+        ]
+        submit = self.client.post(
+            f'/api/oquvchi/listening/{self.lesson.id}/topshirish/',
+            {'javoblar': answers},
+            format='json',
+        )
+        self.assertEqual(submit.status_code, 201, submit.data)
+        self.assertEqual(float(submit.data['foiz']), 80.0)
+        self.assertTrue(submit.data['otdi'])
+        self.assertEqual(ListeningNatija.objects.count(), 1)
+
+    def test_speaking_transcript_gets_pronunciation_score(self):
+        from exams.models import SpeakingNatija
+        self.client.force_authenticate(self.student)
+        response = self.client.post(
+            f'/api/oquvchi/speaking-topshirish/{self.speaking.id}/',
+            {'transkripsiya': 'Hello my friend'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertGreaterEqual(float(response.data['ai_foiz']), 99)
+        self.assertEqual(response.data['transkripsiya'], 'Hello my friend')
+        self.assertFalse(response.data['baholanmoqda'])
+        self.assertEqual(SpeakingNatija.objects.count(), 1)
+
+    def test_personal_plan_streak_bonus_and_notifications(self):
+        from exams.models import OquvchiCoin
+        self.client.force_authenticate(self.student)
+        plan = self.client.get('/api/oquvchi/oqish-rejasi/')
+        self.assertEqual(plan.status_code, 200, plan.data)
+        self.assertEqual(plan.data['fan']['id'], self.fan.id)
+        self.assertEqual(plan.data['bugungi_dars']['dars_id'], self.lesson.id)
+        self.assertEqual(plan.data['streak']['joriy'], 7)
+        self.assertEqual(OquvchiCoin.objects.get(oquvchi=self.student).balans, 10)
+
+        notifications = self.client.get('/api/oquvchi/bildirishnomalar/')
+        self.assertEqual(notifications.status_code, 200)
+        self.assertGreaterEqual(notifications.data['oqilmagan_soni'], 2)  # sinov xabari + streak bonusi
+        mark = self.client.patch(f'/api/oquvchi/bildirishnomalar/{self.notification.id}/oqildi/')
+        self.assertEqual(mark.status_code, 200)
+        self.assertTrue(mark.data['oqilgan'])
+        mark_all = self.client.post('/api/oquvchi/bildirishnomalar/barchasi-oqildi/')
+        self.assertEqual(mark_all.status_code, 200)

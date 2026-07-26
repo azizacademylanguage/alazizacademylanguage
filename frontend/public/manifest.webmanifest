@@ -1,32 +1,20 @@
 {
-  "name": "Al-Aziz Academy Language",
-  "short_name": "Al-Aziz",
-  "description": "Al-Aziz Academy til o‘rganish platformasi",
+  "name": "Bilim Yo'li — AL-AZIZ Til Platformasi",
+  "short_name": "Bilim Yo'li",
+  "description": "English, Rus tili va Koreys tilini darajalar orqali o‘rganish platformasi.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#f8f6ef",
-  "theme_color": "#1b4b43",
-  "lang": "uz",
   "orientation": "portrait-primary",
+  "background_color": "#F7FAF9",
+  "theme_color": "#086375",
+  "lang": "uz",
   "icons": [
-    {
-      "src": "/pwa-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/pwa-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/pwa-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
+    { "src": "/pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "O‘quvchi paneli", "short_name": "Panel", "url": "/oquvchi", "icons": [{ "src": "/pwa/icon-192.png", "sizes": "192x192" }] },
+    { "name": "So‘z o‘yini", "short_name": "O‘yin", "url": "/oquvchi/soz-oyini", "icons": [{ "src": "/pwa/icon-192.png", "sizes": "192x192" }] }
   ]
 }

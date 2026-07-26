@@ -14,11 +14,6 @@ urlpatterns = [
     path('auth/login/', views.LoginView.as_view(), name='login'),
     path('auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/me/', views.MeView.as_view(), name='me'),
-    path('auth/parol-almashtirish/', views.ParolAlmashtirishView.as_view(), name='parol-almashtirish'),
-    path('auth/barcha-qurilmalardan-chiqish/', views.BarchaQurilmalardanChiqishView.as_view(), name='barcha-qurilmalardan-chiqish'),
-    path('auth/xavfsizlik/', views.MeningXavfsizligimView.as_view(), name='mening-xavfsizligim'),
-    path('admin/xavfsizlik/', views.AdminXavfsizlikView.as_view(), name='admin-xavfsizlik'),
-    path('admin/xavfsizlik/<int:user_id>/sessiyalarni-bekor-qilish/', views.AdminSessiyalarniBekorQilishView.as_view(), name='admin-sessiyalarni-bekor-qilish'),
     path('admin/statistika/', views.AdminStatistikaView.as_view(), name='admin-statistika'),
     path('nazoratchi/statistika/', views.NazoratchiStatistikaView.as_view(), name='nazoratchi-statistika'),
 
