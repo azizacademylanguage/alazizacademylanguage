@@ -30,11 +30,78 @@ def _constraints(connection, table_name):
         return connection.introspection.get_constraints(cursor, table_name)
 
 
+def _required_columns(model):
+    """Return physical DB column names required by the current model."""
+    return {field.column for field in model._meta.local_fields}
+
+
+def _next_legacy_table_name(connection, table_name):
+    """Choose a collision-free backup name for a malformed pre-existing table."""
+    existing = set(connection.introspection.table_names())
+    base = f"{table_name}_legacy_0006"
+    candidate = base
+    number = 1
+    while candidate in existing:
+        number += 1
+        candidate = f"{base}_{number}"
+    return candidate
+
+
+def _archive_malformed_table(connection, schema_editor, table_name):
+    """
+    Copy malformed rows to a legacy table, then remove the broken table.
+
+    We copy+drop instead of a simple RENAME because PostgreSQL may keep the
+    original identity sequence name after a rename. That can conflict when
+    Django creates the replacement table with the original name.
+    """
+    legacy_name = _next_legacy_table_name(connection, table_name)
+    quote = connection.ops.quote_name
+    if connection.vendor == 'postgresql':
+        schema_editor.execute(
+            f"CREATE TABLE {quote(legacy_name)} AS TABLE {quote(table_name)}"
+        )
+        schema_editor.execute(f"DROP TABLE {quote(table_name)} CASCADE")
+    else:
+        schema_editor.execute(
+            f"CREATE TABLE {quote(legacy_name)} AS SELECT * FROM {quote(table_name)}"
+        )
+        schema_editor.execute(f"DROP TABLE {quote(table_name)}")
+    return legacy_name
+
+
+def _ensure_model_table(connection, schema_editor, model, existing_tables):
+    """
+    Ensure the table matches at least the columns required by the model.
+
+    A previous interrupted Railway deploy may have left a table with the same
+    name but a completely different/partial schema. In that case we preserve
+    it under a *_legacy_0006 name and create the correct Django table.
+    """
+    table_name = model._meta.db_table
+    if table_name not in existing_tables:
+        schema_editor.create_model(model)
+        existing_tables.add(table_name)
+        return True
+
+    columns = _table_columns(connection, table_name)
+    required = _required_columns(model)
+    missing = required - columns
+    if missing:
+        _archive_malformed_table(connection, schema_editor, table_name)
+        schema_editor.create_model(model)
+        return True
+
+    return False
+
+
 def ensure_0006_database_schema(apps, schema_editor):
-    """Create only schema pieces that do not already exist."""
+    """Create only missing schema pieces and repair partial Railway tables."""
     connection = schema_editor.connection
     existing_tables = set(connection.introspection.table_names())
 
+    # Runtime models are used intentionally: the models are introduced in the
+    # state_operations of this same SeparateDatabaseAndState migration.
     SpeakingNatija = global_apps.get_model('exams', 'SpeakingNatija')
     ListeningSavol = global_apps.get_model('exams', 'ListeningSavol')
     ListeningNatija = global_apps.get_model('exams', 'ListeningNatija')
@@ -50,28 +117,27 @@ def ensure_0006_database_schema(apps, schema_editor):
                 SpeakingNatija._meta.get_field('transkripsiya'),
             )
 
-    created_tables = set()
+    created_or_repaired = set()
     for model in (ListeningSavol, ListeningNatija, KunlikFaollik, Bildirishnoma):
-        table_name = model._meta.db_table
-        if table_name not in existing_tables:
-            schema_editor.create_model(model)
-            existing_tables.add(table_name)
-            created_tables.add(table_name)
+        if _ensure_model_table(connection, schema_editor, model, existing_tables):
+            created_or_repaired.add(model._meta.db_table)
 
-    # Existing bildirishnomalar table may predate this migration's index.
-    if (
-        Bildirishnoma._meta.db_table in existing_tables
-        and Bildirishnoma._meta.db_table not in created_tables
-    ):
-        constraints = _constraints(connection, Bildirishnoma._meta.db_table)
-        if BILDIRISHNOMA_INDEX_NAME not in constraints:
-            schema_editor.add_index(
-                Bildirishnoma,
-                models.Index(
-                    fields=['oquvchi', 'oqilgan', '-created_at'],
-                    name=BILDIRISHNOMA_INDEX_NAME,
-                ),
-            )
+    # Add the notification index only after validating that all referenced
+    # columns exist. Newly created tables already receive Meta.indexes.
+    notification_table = Bildirishnoma._meta.db_table
+    if notification_table in existing_tables and notification_table not in created_or_repaired:
+        columns = _table_columns(connection, notification_table)
+        index_columns = {'oquvchi_id', 'oqilgan', 'created_at'}
+        if index_columns.issubset(columns):
+            constraints = _constraints(connection, notification_table)
+            if BILDIRISHNOMA_INDEX_NAME not in constraints:
+                schema_editor.add_index(
+                    Bildirishnoma,
+                    models.Index(
+                        fields=['oquvchi', 'oqilgan', '-created_at'],
+                        name=BILDIRISHNOMA_INDEX_NAME,
+                    ),
+                )
 
 
 class Migration(migrations.Migration):

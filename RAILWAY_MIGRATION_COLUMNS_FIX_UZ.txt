@@ -1,0 +1,21 @@
+RAILWAY MIGRATION 0006 USTUN XATOSI TUZATILDI
+
+Muammo:
+  psycopg.errors.UndefinedColumn: column "oquvchi_id" does not exist
+
+Sabab:
+  PostgreSQL bazada "bildirishnomalar" nomli eski/noto'liq jadval qolgan.
+  Django 0006 migratsiyasi esa yangi model uchun oquvchi_id, oqilgan va
+  created_at ustunlariga indeks yaratishga uringan.
+
+Tuzatish:
+  - Jadvalning kerakli ustunlari introspection orqali tekshiriladi.
+  - Noto'liq jadval ma'lumotlari bildirishnomalar_legacy_0006 nomiga
+    zaxiralanadi.
+  - To'g'ri bildirishnomalar jadvali Django modeli asosida qayta yaratiladi.
+  - Indeks faqat kerakli ustunlar mavjud bo'lganda qo'shiladi.
+  - Mavjud o'quvchi, natija, sertifikat va xarid jadvallariga tegilmaydi.
+
+GitHubga pushdan keyin Railway avtomatik redeploy qiladi.
+Logda quyidagini ko'rish kerak:
+  Applying exams.0006_listening_faollik_bildirishnoma_speaking_transcript... OK
