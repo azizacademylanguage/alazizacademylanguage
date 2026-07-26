@@ -36,3 +36,6 @@ export const updateAdminOquvchi = (id, data) => client.patch(`/admin/oquvchilar/
 export const deleteAdminOquvchi = (id) => client.delete(`/admin/oquvchilar/${id}/`);
 
 export const getAdminSertifikatlar = (q = '') => client.get('/admin/sertifikatlar/', { params: q ? { q } : {} }).then(r => r.data);
+
+export const getAdminFoydalanuvchilar = () => client.get('/admin/foydalanuvchilar/').then(r => r.data);
+export const updateAdminFoydalanuvchi = (id, data) => client.patch(`/admin/foydalanuvchilar/${id}/`, data).then(r => r.data);

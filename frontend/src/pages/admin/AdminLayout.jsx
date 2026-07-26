@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import DashboardLayout from '../../components/DashboardLayout';
-import { LayoutDashboard, Building2, Users, UserRoundPlus, BookOpen, ShoppingBag, FileClock, Download, Award, PackageCheck, BarChart3, Trophy } from 'lucide-react';
+import { LayoutDashboard, Building2, Users, UserRoundPlus, BookOpen, ShoppingBag, FileClock, Download, Award, PackageCheck, BarChart3, Trophy, UsersRound } from 'lucide-react';
 
 const navItems = [
   { to: '/admin', label: 'Boshqaruv paneli', mobileLabel: 'Bosh', icon: LayoutDashboard, end: true },
@@ -9,6 +9,7 @@ const navItems = [
   { to: '/admin/filiallar', label: 'Filiallar', mobileLabel: 'Filial', icon: Building2 },
   { to: '/admin/nazoratchilar', label: 'Nazoratchilar', mobileLabel: 'Rahbar', icon: Users },
   { to: '/admin/oquvchilar', label: "O'quvchilar", mobileLabel: "O'quvchi", icon: UserRoundPlus },
+  { to: '/admin/foydalanuvchilar', label: 'Barcha foydalanuvchilar', mobileLabel: 'Loginlar', icon: UsersRound },
   { to: '/admin/sertifikatlar', label: 'Sertifikatlar', mobileLabel: 'Sertifikat', icon: Award },
   { to: '/admin/fanlar', label: "Ta'lim mazmuni", mobileLabel: "Ta'lim", icon: BookOpen },
   { to: '/admin/shop', label: "Do'kon", mobileLabel: "Do'kon", icon: ShoppingBag },

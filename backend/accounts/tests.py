@@ -71,3 +71,38 @@ class AdminStudentCreateTests(APITestCase):
         student = User.objects.get(username='malika_student')
         self.assertEqual(student.tarif, User.TARIF_YAGONA)
         self.assertEqual(student.tolov_holati, User.TOLOV_TOLANMAGAN)
+
+
+    def test_start_date_sets_end_date_one_calendar_month_later(self):
+        response = self.client.post('/api/admin/oquvchilar/', {
+            'ism': 'Oysha',
+            'familya': 'Aliyeva',
+            'username': 'oysha_login',
+            'daraja': self.daraja.id,
+            'boshlanish_sana': '2026-01-31',
+        }, format='json')
+
+        self.assertEqual(response.status_code, 201, response.data)
+        student = User.objects.get(username='oysha_login')
+        self.assertEqual(str(student.tugash_sana), '2026-02-28')
+        self.assertTrue(student.check_password('oysha_login'))
+
+    def test_same_names_are_allowed_but_login_stays_unique(self):
+        User.objects.create_user(username='first_login', password='first_login', ism='Ali', familya='Valiyev', role=User.ROLE_OQUVCHI)
+        response = self.client.post('/api/admin/oquvchilar/', {
+            'ism': 'Ali',
+            'familya': 'Valiyev',
+            'username': 'second_login',
+            'daraja': self.daraja.id,
+        }, format='json')
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(User.objects.filter(ism='Ali', familya='Valiyev').count(), 2)
+
+    def test_admin_can_reset_any_user_password(self):
+        student = User.objects.create_user(username='reset_me', password='oldpass', role=User.ROLE_OQUVCHI)
+        response = self.client.patch(f'/api/admin/foydalanuvchilar/{student.id}/', {
+            'password': 'newpass123'
+        }, format='json')
+        self.assertEqual(response.status_code, 200, response.data)
+        student.refresh_from_db()
+        self.assertTrue(student.check_password('newpass123'))

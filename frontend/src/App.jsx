@@ -10,6 +10,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import FiliallarPage from './pages/admin/FiliallarPage';
 import NazoratchilarPage from './pages/admin/NazoratchilarPage';
 import AdminOquvchilarPage from './pages/admin/OquvchilarPage';
+import FoydalanuvchilarPage from './pages/admin/FoydalanuvchilarPage';
 import FanlarPage from './pages/admin/FanlarPage';
 import FanDetailPage from './pages/admin/FanDetailPage';
 import DarsDetailPage from './pages/admin/DarsDetailPage';
@@ -66,6 +67,7 @@ export default function App() {
             <Route path="filiallar" element={<FiliallarPage />} />
             <Route path="nazoratchilar" element={<NazoratchilarPage />} />
             <Route path="oquvchilar" element={<AdminOquvchilarPage />} />
+            <Route path="foydalanuvchilar" element={<FoydalanuvchilarPage />} />
             <Route path="fanlar" element={<FanlarPage />} />
             <Route path="fanlar/:fanId" element={<FanDetailPage />} />
             <Route path="darslar/:darsId" element={<DarsDetailPage />} />

@@ -4,11 +4,10 @@ import {
   deleteAdminOquvchi,
   getAdminOquvchilar,
   getFanlar,
-  updateAdminOquvchi,
 } from '../../api/admin';
 import { Badge, Button, Card, EmptyState, IconButton, Input, Modal, Select, Skeleton } from '../../components/ui';
 import { useToast } from '../../context/ToastContext';
-import { BookOpen, CalendarPlus, GraduationCap, KeyRound, Plus, Search, Trash2, UserPlus } from 'lucide-react';
+import { BookOpen, GraduationCap, KeyRound, Plus, Search, Trash2, UserPlus } from 'lucide-react';
 import { cleanLevelName } from '../../utils/course';
 
 
@@ -25,6 +24,20 @@ const firstErrorMessage = (data) => {
   return '';
 };
 
+
+const addOneMonth = (isoDate) => {
+  if (!isoDate) return '';
+  const [year, month, day] = isoDate.split('-').map(Number);
+  const targetMonth = month === 12 ? 1 : month + 1;
+  const targetYear = month === 12 ? year + 1 : year;
+  const lastDay = new Date(targetYear, targetMonth, 0).getDate();
+  const safeDay = Math.min(day, lastDay);
+  return `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(safeDay).padStart(2, '0')}`;
+};
+
+const now = new Date();
+const today = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+
 const emptyForm = {
   ism: '',
   familya: '',
@@ -32,8 +45,8 @@ const emptyForm = {
   password: '',
   fan: '',
   daraja: '',
-  boshlanish_sana: new Date().toISOString().slice(0, 10),
-  tugash_sana: '',
+  boshlanish_sana: today,
+  tugash_sana: addOneMonth(today),
   tolov_holati: 'tolangan',
   muddat_bloklash: true,
 };
@@ -102,7 +115,7 @@ export default function OquvchilarPage() {
         ism: form.ism,
         familya: form.familya,
         username: form.username,
-        password: form.password,
+        password: form.username,
         daraja: Number(form.daraja),
         boshlanish_sana: form.boshlanish_sana || null,
         tugash_sana: form.tugash_sana || null,
@@ -125,14 +138,6 @@ export default function OquvchilarPage() {
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleExtend = async (student) => {
-    const base = student.tugash_sana && new Date(student.tugash_sana) > new Date() ? new Date(student.tugash_sana) : new Date();
-    base.setDate(base.getDate() + 30);
-    await updateAdminOquvchi(student.id, { tugash_sana: base.toISOString().slice(0, 10), tolov_holati: 'tolangan', faol: true });
-    showToast("O'quvchi muddati 30 kunga uzaytirildi.");
-    load();
   };
 
   const handleDelete = async (student) => {
@@ -209,7 +214,7 @@ export default function OquvchilarPage() {
                     <Badge tone={student.obuna_holati === 'faol' ? 'success' : student.obuna_holati === 'tugamoqda' ? 'warning' : 'danger'}>{student.obuna_holati || 'faol'}{student.qolgan_kun !== null && student.qolgan_kun !== undefined ? ` · ${student.qolgan_kun} kun` : ''}</Badge>
                   </div>
                 </div>
-                <div className="flex gap-1"><IconButton icon={CalendarPlus} title="30 kun uzaytirish" onClick={() => handleExtend(student)} /><IconButton icon={Trash2} tone="danger" title="O'chirish" onClick={() => handleDelete(student)} /></div>
+                <div className="flex gap-1"><IconButton icon={Trash2} tone="danger" title="O'chirish" onClick={() => handleDelete(student)} /></div>
               </div>
             </Card>
           ))}
@@ -220,7 +225,7 @@ export default function OquvchilarPage() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         title="Yangi o'quvchi yaratish"
-        subtitle="Login, parol, fan va daraja majburiy tanlanadi."
+        subtitle="Ism-familiya takrorlanishi mumkin. Login noyob, boshlang‘ich parol login bilan bir xil bo‘ladi."
         wide
       >
         <form onSubmit={handleCreate} className="space-y-4">
@@ -229,7 +234,7 @@ export default function OquvchilarPage() {
             <Input label="Familya" required value={form.familya} onChange={(event) => setForm({ ...form, familya: event.target.value })} />
           </div>
           <Input label="Login" required value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} placeholder="masalan: aziza_01" />
-          <Input label="Parol" type="text" required minLength={4} value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} placeholder="O'quvchiga beriladigan parol" />
+          <Input label="Parol (login bilan bir xil)" type="text" required value={form.username} readOnly placeholder="Avval login kiriting" />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t" style={{ borderColor: 'var(--color-line)' }}>
             <Select label="Fan" required value={form.fan} onChange={(event) => handleFanChange(event.target.value)}>
@@ -254,7 +259,7 @@ export default function OquvchilarPage() {
               <option value="tolangan">To'langan</option>
               <option value="tolanmagan">To'lanmagan</option>
             </Select>
-            <Input type="date" label="Boshlanish sanasi" value={form.boshlanish_sana} onChange={(event) => setForm({ ...form, boshlanish_sana: event.target.value })} />
+            <Input type="date" label="Boshlanish sanasi" value={form.boshlanish_sana} onChange={(event) => { const value = event.target.value; setForm({ ...form, boshlanish_sana: value, tugash_sana: addOneMonth(value) }); }} />
             <Input type="date" label="Tugash sanasi" value={form.tugash_sana} onChange={(event) => setForm({ ...form, tugash_sana: event.target.value })} />
           </div>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.muddat_bloklash} onChange={(event) => setForm({ ...form, muddat_bloklash: event.target.checked })} /> Muddat tugaganda darslarni qulflash</label>

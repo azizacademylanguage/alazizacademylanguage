@@ -1,4 +1,6 @@
 from django.contrib.auth import get_user_model
+from calendar import monthrange
+from datetime import date
 from django.db import IntegrityError, DatabaseError, transaction
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -9,6 +11,34 @@ from courses.utils import toza_daraja_nomi
 from .models import Filial
 
 User = get_user_model()
+
+
+def bir_oy_keyin(value):
+    """Sanani keyingi kalendar oyidagi mos kunga ko'chiradi."""
+    if not value:
+        return None
+    year = value.year + (1 if value.month == 12 else 0)
+    month = 1 if value.month == 12 else value.month + 1
+    day = min(value.day, monthrange(year, month)[1])
+    return date(year, month, day)
+
+
+def obuna_sanalarini_toldir(attrs, instance=None):
+    """Boshlanish berilib tugash berilmasa, tugashni 1 oy keyinga qo'yadi."""
+    start_changed = 'boshlanish_sana' in attrs
+    start = attrs.get('boshlanish_sana')
+    if start is None and instance is not None:
+        start = instance.boshlanish_sana
+
+    if start and (start_changed and 'tugash_sana' not in attrs or not attrs.get('tugash_sana')):
+        attrs['tugash_sana'] = bir_oy_keyin(start)
+
+    end = attrs.get('tugash_sana')
+    if end is None and instance is not None:
+        end = instance.tugash_sana
+    if start and end and end < start:
+        raise serializers.ValidationError({'tugash_sana': "Tugash sanasi boshlanish sanasidan oldin bo'lishi mumkin emas."})
+    return attrs
 
 
 class FilialSerializer(serializers.ModelSerializer):
@@ -90,7 +120,7 @@ class UserMeSerializer(serializers.ModelSerializer):
 
 class NazoratchiSerializer(serializers.ModelSerializer):
     """Admin nazoratchi yaratish/ko'rish uchun."""
-    password = serializers.CharField(write_only=True, required=True, min_length=4)
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True, min_length=4)
     filial_nomi = serializers.SerializerMethodField()
     oquvchilar_soni = serializers.SerializerMethodField()
 
@@ -129,7 +159,7 @@ class NazoratchiSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def create(self, validated_data):
-        password = validated_data.pop('password')
+        password = validated_data.pop('password', None) or validated_data.get('username')
         return User.objects.create_user(
             password=password,
             role=User.ROLE_NAZORATCHI,
@@ -139,10 +169,13 @@ class NazoratchiSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)
+        username_changed = 'username' in validated_data and validated_data['username'] != instance.username
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         if password:
             instance.set_password(password)
+        elif username_changed:
+            instance.set_password(validated_data['username'])
         instance.save()
         return instance
 
@@ -204,9 +237,15 @@ class OquvchiSerializer(OquvchiAssignmentMixin, serializers.ModelSerializer):
                   'obuna_holati', 'qolgan_kun', 'muddat_tugagan']
         read_only_fields = ['filial']
 
+    def validate(self, attrs):
+        attrs = obuna_sanalarini_toldir(attrs, self.instance)
+        if self.instance is None and not attrs.get('password'):
+            attrs['password'] = attrs.get('username')
+        return attrs
+
     @transaction.atomic
     def create(self, validated_data):
-        password = validated_data.pop('password')
+        password = validated_data.pop('password', None) or validated_data.get('username')
         daraja = validated_data.pop('daraja', None)
         request = self.context['request']
         nazoratchi = request.user
@@ -231,10 +270,13 @@ class OquvchiSerializer(OquvchiAssignmentMixin, serializers.ModelSerializer):
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)
         daraja = validated_data.pop('daraja', None)
+        username_changed = 'username' in validated_data and validated_data['username'] != instance.username
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         if password:
             instance.set_password(password)
+        elif username_changed:
+            instance.set_password(validated_data['username'])
         instance.save()
         if daraja:
             # O'quvchiga faqat bitta tanlangan fan va boshlang'ich daraja saqlanadi.
@@ -250,7 +292,7 @@ class OquvchiSerializer(OquvchiAssignmentMixin, serializers.ModelSerializer):
 
 class AdminOquvchiSerializer(OquvchiAssignmentMixin, serializers.ModelSerializer):
     """Admin login, parol, fan va darajani bir oynada tanlab o'quvchi yaratadi."""
-    password = serializers.CharField(write_only=True, required=False, min_length=4)
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True, min_length=4)
     daraja = serializers.PrimaryKeyRelatedField(queryset=Daraja.objects.select_related('fan').all(), write_only=True)
     tanlangan_daraja = serializers.SerializerMethodField(method_name='get_daraja')
     daraja_nomi = serializers.SerializerMethodField()
@@ -291,8 +333,9 @@ class AdminOquvchiSerializer(OquvchiAssignmentMixin, serializers.ModelSerializer
         return value
 
     def validate(self, attrs):
+        attrs = obuna_sanalarini_toldir(attrs, self.instance)
         if self.instance is None and not attrs.get('password'):
-            raise serializers.ValidationError({'password': 'Parol majburiy.'})
+            attrs['password'] = attrs.get('username')
         return attrs
 
     def _default_filial(self, admin, requested_filial=None):
@@ -318,7 +361,7 @@ class AdminOquvchiSerializer(OquvchiAssignmentMixin, serializers.ModelSerializer
     def _create_once(self, validated_data):
         data = dict(validated_data)
         daraja = data.pop('daraja')
-        password = data.pop('password')
+        password = data.pop('password', None) or data.get('username')
         admin = self.context['request'].user
         data['filial'] = self._default_filial(admin, data.get('filial'))
 
@@ -366,10 +409,13 @@ class AdminOquvchiSerializer(OquvchiAssignmentMixin, serializers.ModelSerializer
     def update(self, instance, validated_data):
         daraja = validated_data.pop('daraja', None)
         password = validated_data.pop('password', None)
+        username_changed = 'username' in validated_data and validated_data['username'] != instance.username
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         if password:
             instance.set_password(password)
+        elif username_changed:
+            instance.set_password(validated_data['username'])
         if not instance.filial_id:
             instance.filial = self._default_filial(self.context['request'].user)
         instance.save()
@@ -385,3 +431,47 @@ class AdminOquvchiSerializer(OquvchiAssignmentMixin, serializers.ModelSerializer
             )
         return instance
 
+
+
+class AdminFoydalanuvchiSerializer(serializers.ModelSerializer):
+    """Admin barcha rollarning loginini ko'radi va parolini xavfsiz yangilaydi."""
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True, min_length=4)
+    filial_nomi = serializers.CharField(source='filial.nomi', read_only=True)
+    role_nomi = serializers.CharField(source='get_role_display', read_only=True)
+    parol_holati = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'password', 'parol_holati', 'ism', 'familya',
+            'role', 'role_nomi', 'filial', 'filial_nomi', 'faol', 'created_at',
+            'boshlanish_sana', 'tugash_sana', 'tolov_holati',
+        ]
+        read_only_fields = ['role', 'role_nomi', 'created_at', 'parol_holati']
+
+    def get_parol_holati(self, obj):
+        return 'Himoyalangan — faqat yangilash mumkin'
+
+    def validate_username(self, value):
+        value = (value or '').strip()
+        if not value:
+            raise serializers.ValidationError('Login majburiy.')
+        queryset = User.objects.filter(username__iexact=value)
+        if self.instance:
+            queryset = queryset.exclude(pk=self.instance.pk)
+        if queryset.exists():
+            raise serializers.ValidationError('Bu login avval ishlatilgan.')
+        return value
+
+    def validate(self, attrs):
+        return obuna_sanalarini_toldir(attrs, self.instance)
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance

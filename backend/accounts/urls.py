@@ -10,6 +10,7 @@ router = DefaultRouter()
 router.register('admin/filiallar', views.FilialViewSet, basename='filial')
 router.register('admin/nazoratchilar', views.NazoratchiViewSet, basename='nazoratchi')
 router.register('admin/oquvchilar', views.AdminOquvchiViewSet, basename='admin-oquvchi')
+router.register('admin/foydalanuvchilar', views.AdminFoydalanuvchiViewSet, basename='admin-foydalanuvchi')
 router.register('nazoratchi/oquvchilar', views.OquvchiViewSet, basename='oquvchi')
 
 urlpatterns = [

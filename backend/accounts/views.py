@@ -12,7 +12,7 @@ from django.db.models import Avg, Count, Q
 from .models import Filial
 from .serializers import (
     MyTokenObtainPairSerializer, UserMeSerializer, FilialSerializer,
-    NazoratchiSerializer, OquvchiSerializer, AdminOquvchiSerializer
+    NazoratchiSerializer, OquvchiSerializer, AdminOquvchiSerializer, AdminFoydalanuvchiSerializer
 )
 from .permissions import IsAdmin, IsNazoratchi
 
@@ -111,6 +111,28 @@ class NazoratchiViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save()
+
+
+
+
+class AdminFoydalanuvchiViewSet(viewsets.ModelViewSet):
+    """Barcha foydalanuvchilar: loginni ko'rish, login/parol va profilni yangilash."""
+    serializer_class = AdminFoydalanuvchiSerializer
+    permission_classes = [IsAdmin]
+    http_method_names = ['get', 'patch', 'put', 'head', 'options']
+
+    def get_queryset(self):
+        return User.objects.select_related('filial').all().order_by('role', 'username')
+
+    def perform_update(self, serializer):
+        from exams.audit import log_amal
+        old = _audit_state(self.get_object())
+        user = serializer.save()
+        log_amal(
+            self.request.user, 'foydalanuvchi_tahrirlandi', user.full_name,
+            nishon_user=user, obyekt_turi='User', obyekt_id=user.pk,
+            oldingi_holat=old, yangi_holat=_audit_state(user), request=self.request,
+        )
 
 
 # ==================== ADMIN: O'QUVCHILAR ====================
