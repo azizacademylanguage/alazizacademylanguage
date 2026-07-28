@@ -592,6 +592,10 @@ class Musobaqa(models.Model):
     fan = models.ForeignKey('courses.Fan', on_delete=models.SET_NULL, null=True, blank=True, related_name='musobaqalar')
     filial = models.ForeignKey('accounts.Filial', on_delete=models.SET_NULL, null=True, blank=True, related_name='musobaqalar')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_REJA)
+    davomiyligi_daq = models.PositiveIntegerField(default=15)
+    savollar_soni = models.PositiveIntegerField(default=20)
+    boshlangan_vaqt = models.DateTimeField(null=True, blank=True)
+    yakunlangan_vaqt = models.DateTimeField(null=True, blank=True)
     birinchi_coin = models.PositiveIntegerField(default=100)
     ikkinchi_coin = models.PositiveIntegerField(default=60)
     uchinchi_coin = models.PositiveIntegerField(default=30)
@@ -605,3 +609,36 @@ class Musobaqa(models.Model):
 
     def __str__(self):
         return self.nomi
+
+
+class MusobaqaUrinish(models.Model):
+    STATUS_BOSHLANDI = 'boshlandi'
+    STATUS_YAKUN = 'yakun'
+    STATUS_CHOICES = (
+        (STATUS_BOSHLANDI, 'Boshlangan'),
+        (STATUS_YAKUN, 'Yakunlangan'),
+    )
+
+    musobaqa = models.ForeignKey(Musobaqa, on_delete=models.CASCADE, related_name='urinishlar')
+    oquvchi = models.ForeignKey(User, on_delete=models.CASCADE, related_name='musobaqa_urinishlari')
+    savol_idlari = models.JSONField(default=list, blank=True)
+    javoblar = models.JSONField(default=list, blank=True)
+    togri_soni = models.PositiveIntegerField(default=0)
+    jami_soni = models.PositiveIntegerField(default=0)
+    foiz = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    sarflangan_soniya = models.PositiveIntegerField(default=0)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_BOSHLANDI)
+    boshlangan_vaqt = models.DateTimeField(auto_now_add=True)
+    tugagan_vaqt = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'musobaqa_urinishlari'
+        unique_together = ('musobaqa', 'oquvchi')
+        ordering = ['-foiz', 'sarflangan_soniya', 'boshlangan_vaqt']
+        indexes = [
+            models.Index(fields=['musobaqa', 'status'], name='mus_urinish_status_idx'),
+            models.Index(fields=['oquvchi', '-boshlangan_vaqt'], name='mus_urinish_user_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.musobaqa} - {self.oquvchi} - {self.foiz}%"

@@ -44,6 +44,8 @@ import CertificateVerifyPage from './pages/public/CertificateVerifyPage';
 import ShopBuyurtmalarPage from './pages/shared/ShopBuyurtmalarPage';
 import ReytingPage from './pages/oquvchi/ReytingPage';
 import OfflinePage from './pages/oquvchi/OfflinePage';
+import MusobaqalarimPage from './pages/oquvchi/MusobaqalarimPage';
+import MusobaqaTestPage from './pages/oquvchi/MusobaqaTestPage';
 import OfflineStatusBanner from './components/OfflineStatusBanner';
 
 function RootRedirect() {
@@ -107,6 +109,8 @@ export default function App() {
             <Route path="soz-oyini" element={<SozOyiniPage />} />
             <Route path="shop" element={<ShopPage />} />
             <Route path="reyting" element={<ReytingPage />} />
+            <Route path="musobaqalar" element={<MusobaqalarimPage />} />
+            <Route path="musobaqalar/:id" element={<MusobaqaTestPage />} />
             <Route path="offline" element={<OfflinePage />} />
           </Route>
 

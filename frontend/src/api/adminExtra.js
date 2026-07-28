@@ -73,3 +73,4 @@ export const backupTiklash = (file) => {
     headers: { 'Content-Type': 'multipart/form-data', 'X-Restore-Confirm': 'RESTORE' },
   }).then(r => r.data);
 };
+export const boshlashMusobaqa = (id) => client.post(`/musobaqalar/${id}/boshlash/`).then(r => r.data);

@@ -1,4 +1,4 @@
-const VERSION = 'alaziz-pwa-v7';
+const VERSION = 'alaziz-pwa-v8';
 const APP_CACHE = `${VERSION}-app`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const MEDIA_CACHE = 'alaziz-offline-media-v1';
