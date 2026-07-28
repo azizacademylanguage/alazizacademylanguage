@@ -4,8 +4,10 @@ import { getNazoratchiStatistika, getOquvchilar } from '../../api/nazoratchi';
 import { StatCard, Skeleton, Card } from '../../components/ui';
 import { Users, ClipboardCheck, TrendingUp, ChevronRight } from 'lucide-react';
 import PWAInstallCard from '../../components/PWAInstallCard';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function NazoratchiDashboard() {
+  const { t } = useLanguage();
   const [stats, setStats] = useState(null);
   const [oquvchilar, setOquvchilar] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,10 +21,10 @@ export default function NazoratchiDashboard() {
 
   return (
     <div className="animate-in">
-      <h1 className="font-display text-2xl font-bold mb-1" style={{ color: 'var(--color-ink)' }}>Boshqaruv paneli</h1>
-      <p className="text-sm mb-8" style={{ color: '#8A8371' }}>Sizning filialingiz bo'yicha umumiy holat.</p>
+      <h1 className="font-display text-2xl font-bold mb-1" style={{ color: 'var(--color-ink)' }}>{t('nav.dashboard')}</h1>
+      <p className="text-sm mb-8" style={{ color: '#8A8371' }}>{t('manager.subtitle')}</p>
 
-      <PWAInstallCard roleLabel="Filial rahbari" />
+      <PWAInstallCard roleLabel={t('role.nazoratchi')} />
 
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
@@ -30,16 +32,16 @@ export default function NazoratchiDashboard() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <StatCard label="O'quvchilarim" value={stats?.oquvchilar_soni ?? 0} icon={Users} accent="forest" delay={0} />
-          <StatCard label="Jami urinishlar" value={stats?.jami_urinishlar ?? 0} icon={ClipboardCheck} accent="amber" delay={80} />
-          <StatCard label="O'rtacha natija" value={`${stats?.ortacha_foiz ?? 0}%`} icon={TrendingUp} accent="moss" delay={160} />
+          <StatCard label={t('nav.myStudents')} value={stats?.oquvchilar_soni ?? 0} icon={Users} accent="forest" delay={0} />
+          <StatCard label={t('manager.attempts')} value={stats?.jami_urinishlar ?? 0} icon={ClipboardCheck} accent="amber" delay={80} />
+          <StatCard label={t('admin.averageResult')} value={`${stats?.ortacha_foiz ?? 0}%`} icon={TrendingUp} accent="moss" delay={160} />
         </div>
       )}
 
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-display font-bold text-base" style={{ color: 'var(--color-ink)' }}>So'nggi qo'shilgan o'quvchilar</h2>
+        <h2 className="font-display font-bold text-base" style={{ color: 'var(--color-ink)' }}>{t('manager.recentStudents')}</h2>
         <Link to="/nazoratchi/oquvchilar" className="text-xs font-semibold flex items-center gap-1" style={{ color: 'var(--color-forest)' }}>
-          Barchasi <ChevronRight size={13} />
+          {t('manager.all')} <ChevronRight size={13} />
         </Link>
       </div>
 
@@ -48,7 +50,7 @@ export default function NazoratchiDashboard() {
       ) : oquvchilar.length === 0 ? (
         <Card>
           <p className="text-sm text-center py-8" style={{ color: '#8A8371' }}>
-            Hali o'quvchi yo'q. "O'quvchilarim" bo'limidan qo'shishingiz mumkin.
+            {t('manager.empty')}
           </p>
         </Card>
       ) : (

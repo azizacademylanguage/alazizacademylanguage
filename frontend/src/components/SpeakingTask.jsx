@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { topshirSpeaking } from '../api/writingSpeaking';
+import OfflineQueuedNotice from './OfflineQueuedNotice';
 import { Card, Button } from './ui';
 import { Mic, Square, CheckCircle2, Volume2, RotateCcw, AudioLines } from 'lucide-react';
 
@@ -99,7 +100,9 @@ export default function SpeakingTask({ topshiriq }) {
 
       <div className="speaking-target"><Volume2 size={16} /><span>{topshiriq.matn}</span></div>
 
-      {result ? (
+      {result?.offline_queued ? (
+        <OfflineQueuedNotice compact />
+      ) : result ? (
         <div className="speaking-result animate-pop">
           <div className={`score-ring ${Number(result.ai_foiz) >= 70 ? 'is-success' : 'is-warning'}`}><strong>{Math.round(Number(result.ai_foiz || 0))}%</strong><span>aniqlik</span></div>
           <div className="flex-1">

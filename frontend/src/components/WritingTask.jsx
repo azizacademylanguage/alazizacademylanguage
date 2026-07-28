@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { topshirWriting } from '../api/writingSpeaking';
 import { Card, Button } from './ui';
 import { PenLine, CheckCircle2, AlertCircle } from 'lucide-react';
+import OfflineQueuedNotice from './OfflineQueuedNotice';
 
 export default function WritingTask({ topshiriq }) {
   const [matn, setMatn] = useState('');
@@ -29,7 +30,9 @@ export default function WritingTask({ topshiriq }) {
       </div>
       <p className="text-sm mb-4" style={{ color: 'var(--color-ink)' }}>{topshiriq.matn}</p>
 
-      {natija ? (
+      {natija?.offline_queued ? (
+        <OfflineQueuedNotice compact />
+      ) : natija ? (
         <div className="animate-pop">
           <div className="flex items-center gap-2 mb-3">
             <div

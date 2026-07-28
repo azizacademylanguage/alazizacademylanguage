@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Card, Button, ProgressBar, Skeleton } from './ui';
 import { Headphones, Volume2, ChevronLeft, ChevronRight, CheckCircle2, RotateCcw } from 'lucide-react';
 import { getListening, submitListening } from '../api/engagement';
+import OfflineQueuedNotice from './OfflineQueuedNotice';
 
 export default function ListeningExercise({ darsId }) {
   const [data, setData] = useState(null);
@@ -75,10 +76,12 @@ export default function ListeningExercise({ darsId }) {
             <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>Ovozni tinglang va to‘g‘ri tarjimani tanlang.</p>
           </div>
         </div>
-        <span className="feature-counter">{result ? `${result.foiz}%` : `${answeredCount}/${questions.length}`}</span>
+        <span className="feature-counter">{result?.offline_queued ? 'Offline' : result ? `${result.foiz}%` : `${answeredCount}/${questions.length}`}</span>
       </div>
 
-      {result ? (
+      {result?.offline_queued ? (
+        <OfflineQueuedNotice compact />
+      ) : result ? (
         <div className="listening-result animate-pop">
           <div className={`score-ring ${result.otdi ? 'is-success' : 'is-warning'}`}>
             <strong>{Math.round(Number(result.foiz))}%</strong>

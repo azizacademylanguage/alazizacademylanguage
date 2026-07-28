@@ -8,9 +8,11 @@ import WritingTask from '../../components/WritingTask';
 import SpeakingTask from '../../components/SpeakingTask';
 import ListeningExercise from '../../components/ListeningExercise';
 import { ChevronLeft, CheckCircle2, ListChecks } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function DarsPage() {
   const { darsId } = useParams();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [dars, setDars] = useState(null);
   const [writingTopshiriqlar, setWritingTopshiriqlar] = useState([]);
@@ -44,15 +46,23 @@ export default function DarsPage() {
   };
 
   const handleVideoEnded = async () => {
-    await saveDarsProgress(darsId, { video_tugatilgan: true, video_pozitsiya_soniya: 0 });
-    load();
+    const result = await saveDarsProgress(darsId, { video_tugatilgan: true, video_pozitsiya_soniya: 0 });
+    if (result?.offline_queued) {
+      setDars((current) => ({ ...current, progress: { ...(current?.progress || {}), video_tugatilgan: true, video_pozitsiya_soniya: 0 } }));
+    } else {
+      load();
+    }
   };
 
   const markAsDone = async () => {
     setMarkingDone(true);
     try {
-      await saveDarsProgress(darsId, { video_tugatilgan: true });
-      load();
+      const result = await saveDarsProgress(darsId, { video_tugatilgan: true });
+      if (result?.offline_queued) {
+        setDars((current) => ({ ...current, progress: { ...(current?.progress || {}), video_tugatilgan: true } }));
+      } else {
+        load();
+      }
     } finally {
       setMarkingDone(false);
     }
@@ -67,12 +77,12 @@ export default function DarsPage() {
       </div>
     );
   }
-  if (!dars) return <p className="text-sm" style={{ color: '#8A8371' }}>Dars topilmadi.</p>;
+  if (!dars) return <p className="text-sm" style={{ color: '#8A8371' }}>{t('lesson.notFound')}</p>;
 
   return (
     <div className="animate-in max-w-3xl">
       <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1 text-sm mb-4 hover:underline press" style={{ color: 'var(--color-forest)' }}>
-        <ChevronLeft size={15} /> Orqaga
+        <ChevronLeft size={15} /> {t('common.back')}
       </button>
 
       <h1 className="font-display text-2xl font-bold mb-6" style={{ color: 'var(--color-ink)' }}>{dars.sarlavha}</h1>
@@ -92,21 +102,21 @@ export default function DarsPage() {
 
       {dars.audio && (
         <Card className="mb-5 p-5 animate-in-fast stagger-1">
-          <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#8A8371' }}>Audio dars</p>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#8A8371' }}>{t('lesson.audio')}</p>
           <audio src={dars.audio} controls className="w-full" />
         </Card>
       )}
 
       {dars.tushuntirish_matn && (
         <Card className="mb-5 p-5 animate-in-fast stagger-2">
-          <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#8A8371' }}>Tushuntirish</p>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#8A8371' }}>{t('lesson.explanation')}</p>
           <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: 'var(--color-ink)' }}>{dars.tushuntirish_matn}</p>
         </Card>
       )}
 
       {dars.misollar && (
         <Card className="mb-5 p-5 animate-in-fast stagger-3">
-          <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#8A8371' }}>Misollar</p>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#8A8371' }}>{t('lesson.examples')}</p>
           <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: 'var(--color-ink)' }}>{dars.misollar}</p>
         </Card>
       )}
@@ -119,17 +129,17 @@ export default function DarsPage() {
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-6">
         {!dars.progress?.video_tugatilgan ? (
           <Button variant="secondary" onClick={markAsDone} disabled={markingDone} className="justify-center">
-            <CheckCircle2 size={16} /> {markingDone ? 'Saqlanmoqda...' : "Darsni tugatdim deb belgilash"}
+            <CheckCircle2 size={16} /> {markingDone ? t('lesson.saving') : t('lesson.markDone')}
           </Button>
         ) : (
           <span className="flex items-center justify-center gap-2 text-sm font-medium py-2.5" style={{ color: 'var(--color-forest)' }}>
-            <CheckCircle2 size={16} /> Dars tugatilgan
+            <CheckCircle2 size={16} /> {t('lesson.completed')}
           </span>
         )}
 
         {dars.mashq_bor && (
           <Link to={`/oquvchi/mashq/${dars.mashq_id}`} className="sm:ml-auto">
-            <Button variant="amber" className="w-full justify-center"><ListChecks size={16} /> Mashqni boshlash</Button>
+            <Button variant="amber" className="w-full justify-center"><ListChecks size={16} /> {t('lesson.startExercise')}</Button>
           </Link>
         )}
       </div>

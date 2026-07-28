@@ -3,9 +3,12 @@ import { useAuth } from '../context/AuthContext';
 import { GraduationCap, LogOut } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import PWAInstallButton from './PWAInstallButton';
+import LanguageSwitcher from './LanguageSwitcher';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function DashboardLayout({ navItems, children, extraSidebarContent }) {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -13,20 +16,22 @@ export default function DashboardLayout({ navItems, children, extraSidebarConten
     navigate('/login');
   };
 
-  const roleLabel = { admin: 'Admin', nazoratchi: 'Nazoratchi', oquvchi: "O'quvchi" }[user?.role] || '';
+  const roleLabel = user?.role ? t(`role.${user.role}`) : '';
 
   const SidebarContent = () => (
     <>
       <div>
-        <div className="flex items-center gap-2.5 mb-8 px-1">
+        <div className="flex items-center gap-2.5 mb-6 px-1">
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{ background: 'linear-gradient(135deg, var(--color-amber) 0%, var(--color-amber-dark) 100%)' }}
           >
             <GraduationCap size={16} color="white" strokeWidth={2.2} />
           </div>
-          <span className="font-display text-white font-bold text-[15px] tracking-tight">Bilim Yo'li</span>
+          <span className="font-display text-white font-bold text-[15px] tracking-tight">{t('appName')}</span>
         </div>
+
+        <div className="mb-4 px-1"><LanguageSwitcher dark /></div>
 
         <nav className="space-y-1">
           {navItems.map((item, idx) => (
@@ -72,7 +77,7 @@ export default function DashboardLayout({ navItems, children, extraSidebarConten
           className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-white/70 hover:text-white hover:bg-white/10 transition-all press"
         >
           <LogOut size={16} />
-          Chiqish
+          {t('common.logout')}
         </button>
       </div>
     </>
@@ -80,7 +85,6 @@ export default function DashboardLayout({ navItems, children, extraSidebarConten
 
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--color-paper)' }}>
-      {/* Desktop sidebar */}
       <aside
         className="hidden lg:flex w-64 flex-shrink-0 flex-col justify-between p-5 sticky top-0 h-screen"
         style={{ background: 'linear-gradient(180deg, var(--color-forest) 0%, var(--color-teal) 62%, var(--color-amethyst) 125%)', boxShadow: '12px 0 40px rgba(8,41,0,0.08)' }}
@@ -88,19 +92,17 @@ export default function DashboardLayout({ navItems, children, extraSidebarConten
         <SidebarContent />
       </aside>
 
-      {/* Mobile topbar — menyu tugmasisiz, navigatsiya pastda */}
       <header className="mobile-topbar lg:hidden">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="mobile-topbar__logo">
-            <GraduationCap size={15} color="white" strokeWidth={2.3} />
-          </div>
+          <div className="mobile-topbar__logo"><GraduationCap size={15} color="white" strokeWidth={2.3} /></div>
           <div className="min-w-0">
-            <p className="font-display text-white font-extrabold text-sm leading-tight truncate">Bilim Yo'li</p>
+            <p className="font-display text-white font-extrabold text-sm leading-tight truncate">{t('appName')}</p>
             <p className="text-white/55 text-[10px] leading-tight truncate">{roleLabel}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          <LanguageSwitcher compact dark />
           <PWAInstallButton compact />
           {user?.role === 'oquvchi' && <NotificationBell mobile />}
           <div className="mobile-user-chip" title={user?.full_name || user?.username}>
@@ -110,16 +112,15 @@ export default function DashboardLayout({ navItems, children, extraSidebarConten
             type="button"
             onClick={handleLogout}
             className="mobile-logout-btn press"
-            aria-label="Hisobdan chiqish"
-            title="Chiqish"
+            aria-label={t('common.logout')}
+            title={t('common.logout')}
           >
             <LogOut size={18} />
           </button>
         </div>
       </header>
 
-      {/* Mobile bottom navigation */}
-      <nav className="mobile-bottom-nav lg:hidden" aria-label="Asosiy navigatsiya">
+      <nav className="mobile-bottom-nav lg:hidden" aria-label={t('nav.dashboard')}>
         <div className="mobile-bottom-nav__scroller">
           {navItems.map((item) => (
             <NavLink
@@ -130,18 +131,16 @@ export default function DashboardLayout({ navItems, children, extraSidebarConten
               title={item.label}
               className={({ isActive }) => `mobile-bottom-nav__item ${isActive ? 'is-active' : ''}`}
             >
-              <span className="mobile-bottom-nav__icon">
-                <item.icon size={20} strokeWidth={2.1} />
-              </span>
+              <span className="mobile-bottom-nav__icon"><item.icon size={20} strokeWidth={2.1} /></span>
               <span className="mobile-bottom-nav__label">{item.mobileLabel || item.label}</span>
             </NavLink>
           ))}
         </div>
       </nav>
 
-      {/* Content */}
       <main className="flex-1 min-w-0 overflow-x-hidden relative">
         <div className="desktop-quick-actions hidden lg:flex">
+          <LanguageSwitcher compact />
           <PWAInstallButton compact />
           {user?.role === 'oquvchi' && <NotificationBell />}
         </div>

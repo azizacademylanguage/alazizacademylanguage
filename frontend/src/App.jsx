@@ -43,6 +43,8 @@ import BildirishnomalarPage from './pages/oquvchi/BildirishnomalarPage';
 import CertificateVerifyPage from './pages/public/CertificateVerifyPage';
 import ShopBuyurtmalarPage from './pages/shared/ShopBuyurtmalarPage';
 import ReytingPage from './pages/oquvchi/ReytingPage';
+import OfflinePage from './pages/oquvchi/OfflinePage';
+import OfflineStatusBanner from './components/OfflineStatusBanner';
 
 function RootRedirect() {
   const { user } = useAuth();
@@ -56,6 +58,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <ToastProvider>
+        <OfflineStatusBanner />
         <Routes>
           <Route path="/" element={<RootRedirect />} />
           <Route path="/login" element={<LoginPage />} />
@@ -104,6 +107,7 @@ export default function App() {
             <Route path="soz-oyini" element={<SozOyiniPage />} />
             <Route path="shop" element={<ShopPage />} />
             <Route path="reyting" element={<ReytingPage />} />
+            <Route path="offline" element={<OfflinePage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

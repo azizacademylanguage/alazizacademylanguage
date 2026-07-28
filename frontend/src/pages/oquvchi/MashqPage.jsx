@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getMashq, topshirMashq } from '../../api/oquvchi';
 import { Card, Button, ProgressBar, Skeleton } from '../../components/ui';
+import OfflineQueuedNotice from '../../components/OfflineQueuedNotice';
 import { ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
 
 export default function MashqPage() {
@@ -63,6 +64,10 @@ export default function MashqPage() {
       setSubmitting(false);
     }
   };
+
+  if (natija?.offline_queued) {
+    return <div className="animate-in max-w-lg mx-auto py-10"><OfflineQueuedNotice /></div>;
+  }
 
   if (natija) {
     const foiz = parseFloat(natija.foiz);

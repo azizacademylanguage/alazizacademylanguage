@@ -3,6 +3,7 @@ import { getFanlarim, getNatijalarim } from '../../api/oquvchi';
 import { getCoinlarim } from '../../api/coinShop';
 import { getOqishRejasi } from '../../api/engagement';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { Card, StatCard, Skeleton } from '../../components/ui';
 import SelectedCoursePanel from '../../components/SelectedCoursePanel';
 import PersonalLearningPlan from '../../components/PersonalLearningPlan';
@@ -22,6 +23,7 @@ function CustomTooltip({ active, payload, label }) {
 
 export default function OquvchiDashboard() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [fanlar, setFanlar] = useState([]);
   const [natijalar, setNatijalar] = useState([]);
   const [coin, setCoin] = useState(0);
@@ -40,7 +42,7 @@ export default function OquvchiDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (user?.muddat_tugagan) return <div className="animate-in"><Card className="p-8 text-center"><div className="text-5xl mb-4">🔒</div><h1 className="font-display text-2xl font-bold">Foydalanish muddati tugagan</h1><p className="text-sm mt-2" style={{color:'var(--color-muted)'}}>Darslarni davom ettirish uchun admin bilan bog‘laning. Tarif: {user.tarif || 'Yagona'} · Tugash sanasi: {user.tugash_sana || '-'}</p></Card></div>;
+  if (user?.muddat_tugagan) return <div className="animate-in"><Card className="p-8 text-center"><div className="text-5xl mb-4">🔒</div><h1 className="font-display text-2xl font-bold">{t('student.expired')}</h1><p className="text-sm mt-2" style={{color:'var(--color-muted)'}}>{t('student.expiredText')} {user.tugash_sana ? `· ${user.tugash_sana}` : ''}</p></Card></div>;
 
   const selectedCourse = fanlar[0] || null;
   const ortacha = natijalar.length
@@ -57,11 +59,11 @@ export default function OquvchiDashboard() {
     <div className="animate-in">
       <div className="dashboard-welcome mb-7">
         <div>
-          <p className="text-xs uppercase tracking-[0.22em] font-bold mb-2" style={{ color: 'var(--color-teal)' }}>O'quvchi paneli</p>
+          <p className="text-xs uppercase tracking-[0.22em] font-bold mb-2" style={{ color: 'var(--color-teal)' }}>{t('student.panel')}</p>
           <h1 className="font-display text-2xl sm:text-3xl font-extrabold" style={{ color: 'var(--color-ink)' }}>
-            Salom, {user?.ism || user?.username}!
+            {t('student.hello', { name: user?.ism || user?.username })}
           </h1>
-          <p className="text-sm mt-1" style={{ color: 'var(--color-muted)' }}>Bugungi darsni davom ettiring va keyingi darajani oching.</p>
+          <p className="text-sm mt-1" style={{ color: 'var(--color-muted)' }}>{t('student.today')}</p>
         </div>
         <div className="welcome-orb" aria-hidden="true">✦</div>
       </div>
@@ -72,10 +74,10 @@ export default function OquvchiDashboard() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <StatCard label="Kunlik streak" value={`${plan?.streak?.joriy || 0} kun`} icon={Flame} accent="teal" delay={0} />
-          <StatCard label="Tugatilgan daraja" value={completedLevels} icon={TrendingUp} accent="olive" delay={80} />
-          <StatCard label="Yechilgan test" value={natijalar.length} icon={ClipboardCheck} accent="amethyst" delay={160} />
-          <StatCard label="Coin" value={coin} icon={Coins} accent="jungle" delay={240} />
+          <StatCard label={t('student.dailyStreak')} value={`${plan?.streak?.joriy || 0} kun`} icon={Flame} accent="teal" delay={0} />
+          <StatCard label={t('student.completedLevel')} value={completedLevels} icon={TrendingUp} accent="olive" delay={80} />
+          <StatCard label={t('student.solvedTests')} value={natijalar.length} icon={ClipboardCheck} accent="amethyst" delay={160} />
+          <StatCard label={t('student.coin')} value={coin} icon={Coins} accent="jungle" delay={240} />
         </div>
       )}
 
@@ -85,7 +87,7 @@ export default function OquvchiDashboard() {
         <Card className="p-4 mb-6 pwa-dashboard-card">
           <div className="flex items-center gap-3 min-w-0">
             <div className="feature-icon feature-icon--olive"><Smartphone size={18} /></div>
-            <div className="min-w-0 flex-1"><p className="font-display font-bold text-sm" style={{ color: 'var(--color-ink)' }}>Saytni telefon ilovasi sifatida ishlating</p><p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>Bosh ekranga o‘rnating va tezroq oching.</p></div>
+            <div className="min-w-0 flex-1"><p className="font-display font-bold text-sm" style={{ color: 'var(--color-ink)' }}>{t('student.installTitle')}</p><p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>{t('student.installText')}</p></div>
             <PWAInstallButton />
           </div>
         </Card>
@@ -99,8 +101,8 @@ export default function OquvchiDashboard() {
         </div>
       ) : (
         <Card className="p-8 text-center mb-6">
-          <p className="font-display font-bold" style={{ color: 'var(--color-ink)' }}>Sizga fan tanlanmagan</p>
-          <p className="text-sm mt-1" style={{ color: 'var(--color-muted)' }}>Admin sizga mavjud fanlardan birini tanlab berishi kerak.</p>
+          <p className="font-display font-bold" style={{ color: 'var(--color-ink)' }}>{t('student.noSubject')}</p>
+          <p className="text-sm mt-1" style={{ color: 'var(--color-muted)' }}>{t('student.noSubjectText')}</p>
         </Card>
       )}
 
@@ -108,8 +110,8 @@ export default function OquvchiDashboard() {
         <Card className="p-5 mb-6 animate-in-fast stagger-2 result-chart-card">
           <div className="flex items-center gap-2 mb-4">
             <LineChartIcon size={17} style={{ color: 'var(--color-teal)' }} />
-            <h2 className="font-display font-bold text-sm" style={{ color: 'var(--color-ink)' }}>So'nggi natijalar</h2>
-            <span className="ml-auto text-xs font-semibold" style={{ color: 'var(--color-muted)' }}>O'rtacha: {ortacha}%</span>
+            <h2 className="font-display font-bold text-sm" style={{ color: 'var(--color-ink)' }}>{t('student.latestResults')}</h2>
+            <span className="ml-auto text-xs font-semibold" style={{ color: 'var(--color-muted)' }}>{t('student.average', { value: ortacha })}</span>
           </div>
           <ResponsiveContainer width="100%" height={190}>
             <LineChart data={chartData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>

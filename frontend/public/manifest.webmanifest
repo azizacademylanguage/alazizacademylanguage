@@ -1,14 +1,17 @@
 {
-  "name": "Bilim Yo'li — AL-AZIZ Til Platformasi",
+  "id": "/",
+  "name": "Bilim Yo'li — AL-AZIZ ta'lim platformasi",
   "short_name": "Bilim Yo'li",
-  "description": "AL-AZIZ Academy uchun admin, filial rahbari va o‘quvchi panellariga ega ta’lim platformasi.",
+  "description": "Admin, filial rahbari va o‘quvchi panellariga ega, offline va uch tilli ta’lim platformasi.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "orientation": "portrait-primary",
   "background_color": "#F7FAF9",
   "theme_color": "#086375",
   "lang": "uz",
+  "categories": ["education", "productivity"],
   "icons": [
     { "src": "/pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
     { "src": "/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
@@ -16,6 +19,6 @@
   "shortcuts": [
     { "name": "Admin paneli", "short_name": "Admin", "url": "/admin", "icons": [{ "src": "/pwa/icon-192.png", "sizes": "192x192" }] },
     { "name": "Filial rahbari", "short_name": "Rahbar", "url": "/nazoratchi", "icons": [{ "src": "/pwa/icon-192.png", "sizes": "192x192" }] },
-    { "name": "O‘quvchi paneli", "short_name": "O‘quvchi", "url": "/oquvchi", "icons": [{ "src": "/pwa/icon-192.png", "sizes": "192x192" }] }
+    { "name": "Offline darslar", "short_name": "Offline", "url": "/oquvchi/offline", "icons": [{ "src": "/pwa/icon-192.png", "sizes": "192x192" }] }
   ]
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getGateTest, topshirGateTest } from '../../api/gateTest';
 import { Card, Button, ProgressBar, Skeleton } from '../../components/ui';
+import OfflineQueuedNotice from '../../components/OfflineQueuedNotice';
 import { ChevronLeft, ChevronRight, Lock, CheckCircle2, XCircle, Coins } from 'lucide-react';
 
 export default function GateTestPage() {
@@ -70,6 +71,10 @@ export default function GateTestPage() {
       setSubmitting(false);
     }
   };
+
+  if (natija?.offline_queued) {
+    return <div className="animate-in max-w-lg mx-auto py-10"><OfflineQueuedNotice /></div>;
+  }
 
   if (natija) {
     const otdi = natija.otdi;

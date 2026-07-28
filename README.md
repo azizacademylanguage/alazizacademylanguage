@@ -117,3 +117,13 @@ Railway deploy yangi migratsiyalarni avtomatik bajaradi. Avtomatik backup uchun 
 - Har bir yangi fanga 5 tadan tayyor mavzu joylandi.
 
 Batafsil: `YAGONA_TARIF_VA_YANGI_FANLAR.md`.
+
+## Offline rejim va uch tilli interfeys
+
+- Asosiy interfeys O‘zbekcha, Русский va English tillarida ishlaydi.
+- Tanlangan til loginlar orasida saqlanadi.
+- O‘quvchi ochiq darslarni qurilmaga oldindan yuklab olishi mumkin.
+- Offline bajarilgan qo‘llab-quvvatlanadigan natijalar internet qaytganda avtomatik sinxronlanadi.
+- API ma’lumotlari foydalanuvchi bo‘yicha IndexedDB’da alohida saqlanadi.
+
+Batafsil: `OFFLINE_VA_UCH_TIL_UZ.md`.

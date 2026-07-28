@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { enqueueOfflineRequest, getApiCache, saveApiCache } from '../utils/offlineDb';
 
 const rawApiBase = (
   import.meta.env.VITE_API_BASE_URL
@@ -23,16 +24,107 @@ const client = axios.create({
   timeout: 30000,
 });
 
-client.interceptors.request.use((config) => {
+function absoluteRequestUrl(config = {}) {
+  const base = config.baseURL || API_BASE;
+  const rawUrl = /^https?:\/\//i.test(config.url || '')
+    ? config.url
+    : `${String(base).replace(/\/+$/, '')}/${String(config.url || '').replace(/^\/+/, '')}`;
+  try {
+    const url = new URL(rawUrl);
+    Object.entries(config.params || {}).forEach(([key, value]) => {
+      if (Array.isArray(value)) value.forEach((entry) => url.searchParams.append(key, entry));
+      else if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, value);
+    });
+    return url.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
+function queuedResponse(config) {
+  return {
+    data: {
+      offline_queued: true,
+      queued: true,
+      detail: "Internet qaytganda ma'lumot avtomatik yuboriladi.",
+      created_at: new Date().toISOString(),
+    },
+    status: 202,
+    statusText: 'Accepted Offline',
+    headers: { 'x-alaziz-offline': 'queued' },
+    config,
+    request: null,
+  };
+}
+
+async function queueConfig(config) {
+  await enqueueOfflineRequest({
+    method: String(config.method || 'post').toLowerCase(),
+    url: absoluteRequestUrl(config),
+    data: config.data,
+    params: config.params,
+    contentType: config.headers?.['Content-Type'] || config.headers?.['content-type'] || 'application/json',
+    kind: config.offlineQueueKind || 'student-result',
+  });
+  return queuedResponse(config);
+}
+
+client.interceptors.request.use(async (config) => {
   const token = localStorage.getItem('access_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
+
+  const method = String(config.method || 'get').toLowerCase();
+  if (!navigator.onLine && method === 'get') {
+    const cached = await getApiCache(absoluteRequestUrl(config)).catch(() => null);
+    if (cached) {
+      config.adapter = async () => ({
+        data: cached.data,
+        status: 200,
+        statusText: 'OK (Offline cache)',
+        headers: { 'x-alaziz-offline': 'cache', 'x-alaziz-cache-time': String(cached.savedAt) },
+        config,
+        request: null,
+      });
+    }
+  } else if (!navigator.onLine && config.offlineQueue === true && method !== 'get') {
+    config.adapter = async () => queueConfig(config);
+  }
+
   return config;
 });
 
 client.interceptors.response.use(
-  (res) => res,
+  async (res) => {
+    const method = String(res.config?.method || 'get').toLowerCase();
+    if (method === 'get' && res.status >= 200 && res.status < 300 && res.headers?.['x-alaziz-offline'] !== 'cache') {
+      saveApiCache(absoluteRequestUrl(res.config), res.data).catch(() => {});
+    }
+    return res;
+  },
   async (error) => {
     const original = error.config || {};
+    const method = String(original.method || 'get').toLowerCase();
+    const networkFailure = !error.response || error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED';
+
+    if (method === 'get' && networkFailure) {
+      const cached = await getApiCache(absoluteRequestUrl(original)).catch(() => null);
+      if (cached) {
+        return {
+          data: cached.data,
+          status: 200,
+          statusText: 'OK (Offline cache)',
+          headers: { 'x-alaziz-offline': 'cache', 'x-alaziz-cache-time': String(cached.savedAt) },
+          config: original,
+          request: null,
+        };
+      }
+    }
+
+    if (networkFailure && original.offlineQueue === true && method !== 'get' && !original._offlineQueued) {
+      original._offlineQueued = true;
+      return queueConfig(original);
+    }
+
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true;
       const refresh = localStorage.getItem('refresh_token');
