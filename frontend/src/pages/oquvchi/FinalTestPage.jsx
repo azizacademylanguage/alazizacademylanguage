@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getFinalTest, topshirFinalTest } from '../../api/gateTest';
 import { Card, Button, ProgressBar, Skeleton } from '../../components/ui';
 import OfflineQueuedNotice from '../../components/OfflineQueuedNotice';
+import CertificateCard from '../../components/CertificateCard';
 import { ChevronLeft, ChevronRight, Trophy, CheckCircle2, XCircle, Award, Coins } from 'lucide-react';
 
 export default function FinalTestPage() {
@@ -80,7 +81,7 @@ export default function FinalTestPage() {
   if (natija) {
     const otdi = natija.otdi;
     return (
-      <div className="animate-in max-w-lg mx-auto text-center py-10">
+      <div className="animate-in max-w-3xl mx-auto text-center py-10">
         <div
           className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 animate-pop"
           style={{ background: otdi ? '#E4EFE6' : '#FBEAE8' }}
@@ -109,10 +110,15 @@ export default function FinalTestPage() {
             {natija.xabar || "O'tish balidan past. Keyingi daraja ochilmadi."}
           </p>
         )}
+        {otdi && natija.sertifikat && (
+          <div className="mt-8 mb-6 text-left animate-in-fast stagger-3">
+            <CertificateCard certificate={natija.sertifikat} />
+          </div>
+        )}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 animate-in-fast stagger-3">
           {otdi ? (
             <Link to="/oquvchi/sertifikatlarim" className="w-full sm:w-auto">
-              <Button className="w-full justify-center">Sertifikatimni ko'rish</Button>
+              <Button className="w-full justify-center">Barcha sertifikatlarim</Button>
             </Link>
           ) : (
             <Button onClick={() => { setNatija(null); setJavoblar({}); setCurrentIdx(0); }} className="w-full sm:w-auto justify-center">

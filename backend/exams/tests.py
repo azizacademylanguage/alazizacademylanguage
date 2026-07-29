@@ -110,6 +110,10 @@ class FinalLevelAndCertificateTests(APITestCase):
         self.assertTrue(response.data['keyingi_daraja']['ochildi'])
         self.assertIn('Elementary', response.data['xabar'])
         self.assertTrue(daraja_ochiqmi(self.student, self.elementary))
+        self.assertIsNotNone(response.data['sertifikat'])
+        self.assertTrue(response.data['sertifikat']['pdf_url'].endswith('/pdf/'))
+        self.assertTrue(response.data['sertifikat']['qr_url'].endswith('/qr/'))
+        self.assertIn('QR kodli sertifikat', response.data['xabar'])
 
         certificate = Sertifikat.objects.get(oquvchi=self.student, daraja=self.beginner)
         self.assertEqual(float(certificate.foiz), 80.0)

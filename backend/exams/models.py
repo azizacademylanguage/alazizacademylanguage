@@ -180,7 +180,7 @@ class FinalTest(models.Model):
         'courses.Daraja', on_delete=models.CASCADE, related_name='final_test'
     )
     sarlavha = models.CharField(max_length=200, default='Yakuniy test')
-    otish_bali_foiz = models.PositiveIntegerField(default=70)
+    otish_bali_foiz = models.PositiveIntegerField(default=80)
 
     class Meta:
         db_table = 'final_testlar'

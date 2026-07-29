@@ -341,9 +341,9 @@ class FinalTestTopshirishView(APIView):
             if next_level else None
         )
         data['xabar'] = (
-            f"Tabriklaymiz! {next_level.nomi} darajasi avtomatik ochildi."
+            f"Tabriklaymiz! QR kodli sertifikat berildi va {next_level.nomi} darajasi avtomatik ochildi."
             if otdi and next_level
-            else "Tabriklaymiz! Kursning oxirgi darajasini tugatdingiz."
+            else "Tabriklaymiz! QR kodli sertifikat berildi va kursning oxirgi darajasini tugatdingiz."
             if otdi
             else "Keyingi daraja ochilmadi. Kamida 80% natija kerak."
         )
