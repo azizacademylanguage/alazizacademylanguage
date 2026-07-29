@@ -3,6 +3,7 @@ Gate Test, Final Test, Sertifikat, Writing, Speaking, Coin/Shop, Admin audit log
 uchun view'lar. Asosiy exams/views.py faylini ortiqcha kattalashtirmaslik uchun
 alohida fayl.
 """
+import logging
 import random
 import secrets
 import string
@@ -12,7 +13,7 @@ from difflib import SequenceMatcher
 
 from django.utils import timezone
 from django.http import HttpResponse
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.db.models import Avg, Q
 from rest_framework import viewsets, status
 from rest_framework.views import APIView
@@ -43,6 +44,52 @@ from .serializers_extra import (
 from .coins import coin_qoshish
 from .audit import log_amal
 from .engagement import bildirishnoma_yarat, faollik_qayd_et
+
+
+logger = logging.getLogger(__name__)
+
+
+def _xavfsiz_qoshimcha(nomi, callback):
+    """Qo‘shimcha bonus/bildirishnoma xatosi asosiy test natijasini buzmasin."""
+    try:
+        return callback()
+    except Exception:
+        logger.exception("FINAL_TEST_AUX_FAILED step=%s", nomi)
+        return None
+
+
+def _sertifikatni_ol_yoki_yarat(oquvchi, daraja, foiz):
+    """Legacy bazadagi dublikatlar va kod kolliziyalariga chidamli sertifikat yaratish."""
+    sertifikat = (
+        Sertifikat.objects.select_for_update()
+        .filter(oquvchi=oquvchi, daraja=daraja)
+        .order_by('id')
+        .first()
+    )
+    created = False
+    if sertifikat is None:
+        for _ in range(8):
+            try:
+                # Ichki savepoint IntegrityError'dan keyin tashqi transactionni sog‘lom saqlaydi.
+                with transaction.atomic():
+                    sertifikat = Sertifikat.objects.create(
+                        oquvchi=oquvchi,
+                        daraja=daraja,
+                        kod=_sertifikat_kod_yaratish(),
+                        foiz=foiz,
+                    )
+                created = True
+                break
+            except IntegrityError:
+                # Juda kam uchraydigan kod kolliziyasida yangi kod bilan qayta urinadi.
+                continue
+        if sertifikat is None:
+            raise IntegrityError('Sertifikat uchun noyob kod yaratib bo‘lmadi.')
+
+    if float(foiz) > float(sertifikat.foiz or 0):
+        sertifikat.foiz = foiz
+        sertifikat.save(update_fields=['foiz'])
+    return sertifikat, created
 
 
 # ==================== ADMIN CRUD: WRITING / SPEAKING TOPSHIRIQLAR ====================
@@ -236,7 +283,7 @@ def _sertifikat_kod_yaratish():
 
 
 class FinalTestTopshirishView(APIView):
-    """Yakuniy testdan 80%+ olsa sertifikat yaratiladi va keyingi daraja ochiladi."""
+    """Yakuniy testdan 80%+ olsa QR-kodli sertifikat yaratiladi."""
     permission_classes = [IsOquvchi]
 
     def post(self, request, daraja_id):
@@ -256,88 +303,128 @@ class FinalTestTopshirishView(APIView):
 
         final_test = daraja.final_test
         javoblar_data = request.data.get('javoblar', [])
-        savollar = {s.id: s for s in final_test.savollar.all()}
+        if not isinstance(javoblar_data, list):
+            return Response({'detail': "Javoblar formati noto‘g‘ri."}, status=status.HTTP_400_BAD_REQUEST)
+
+        savollar = {s.id: s for s in final_test.savollar.prefetch_related('javoblar').all()}
+        if not savollar:
+            return Response({'detail': "Yakuniy testda savollar mavjud emas."}, status=status.HTTP_400_BAD_REQUEST)
 
         togri_soni = 0
         for item in javoblar_data:
+            if not isinstance(item, dict):
+                continue
             savol = savollar.get(item.get('savol'))
             if not savol:
                 continue
-            tanlangan_ids = set(item.get('tanlangan_javoblar', []))
-            togri_ids = set(savol.javoblar.filter(togri=True).values_list('id', flat=True))
+            tanlangan_ids = {int(v) for v in (item.get('tanlangan_javoblar') or []) if str(v).isdigit()}
+            togri_ids = {j.id for j in savol.javoblar.all() if j.togri}
             if tanlangan_ids == togri_ids and tanlangan_ids:
                 togri_soni += 1
 
-        jami = len(savollar) or 1
+        jami = len(savollar)
         foiz = round((togri_soni / jami) * 100, 2)
         otish_bali = max(80, int(final_test.otish_bali_foiz or 80))
         otdi = foiz >= otish_bali
-
-        urinish_raqami = FinalTestNatija.objects.filter(
-            oquvchi=request.user, final_test=final_test
-        ).count() + 1
-        natija = FinalTestNatija.objects.create(
-            oquvchi=request.user,
-            final_test=final_test,
-            togri_soni=togri_soni,
-            jami_soni=jami,
-            foiz=foiz,
-            otdi=otdi,
-            urinish_raqami=urinish_raqami,
-        )
-
         next_level = keyingi_daraja(daraja)
-        if otdi:
-            sertifikat, created = Sertifikat.objects.get_or_create(
-                oquvchi=request.user,
-                daraja=daraja,
-                defaults={'kod': _sertifikat_kod_yaratish(), 'foiz': foiz},
-            )
-            if not created and float(foiz) > float(sertifikat.foiz):
-                sertifikat.foiz = foiz
-                sertifikat.save(update_fields=['foiz'])
-            natija.sertifikat = sertifikat
-            natija.save(update_fields=['sertifikat'])
-            coin_qoshish(request.user, 50, 'final_test', f"{daraja} yakuniy testidan o'tildi")
-            log_amal(
-                request.user,
-                'daraja_tugatildi',
-                f"{daraja.fan.nomi} - {daraja.nomi}: {foiz}% bilan tugatildi",
-                nishon_user=request.user,
-            )
-            bildirishnoma_yarat(
-                request.user,
-                'Sertifikatingiz tayyor!',
-                f'{daraja.fan.nomi} — {daraja.nomi} darajasini {foiz}% bilan tugatdingiz.',
-                tur='certificate',
-                havola='/oquvchi/sertifikatlarim',
-            )
-            if next_level:
-                bildirishnoma_yarat(
-                    request.user,
-                    f'{next_level.nomi} darajasi ochildi',
-                    'Keyingi darajadagi mavzularni boshlashingiz mumkin.',
-                    tur='success',
-                    havola='/oquvchi',
+
+        try:
+            with transaction.atomic():
+                urinish_raqami = FinalTestNatija.objects.select_for_update().filter(
+                    oquvchi=request.user, final_test=final_test
+                ).count() + 1
+                natija = FinalTestNatija.objects.create(
+                    oquvchi=request.user,
+                    final_test=final_test,
+                    togri_soni=togri_soni,
+                    jami_soni=jami,
+                    foiz=foiz,
+                    otdi=otdi,
+                    urinish_raqami=urinish_raqami,
                 )
 
-        if not otdi:
-            bildirishnoma_yarat(
-                request.user,
-                'Yakuniy testdan o‘tilmadi',
-                f'{daraja.nomi} darajasida {foiz}% oldingiz. Keyingi daraja uchun kamida 80% kerak.',
-                tur='warning',
-                havola=f'/oquvchi/final-test/{daraja.id}',
+                sertifikat = None
+                sertifikat_yangi = False
+                if otdi:
+                    sertifikat, sertifikat_yangi = _sertifikatni_ol_yoki_yarat(
+                        request.user, daraja, foiz
+                    )
+                    natija.sertifikat = sertifikat
+                    natija.save(update_fields=['sertifikat'])
+        except Exception as exc:
+            logger.exception(
+                "FINAL_TEST_CORE_FAILED user=%s daraja=%s",
+                request.user.pk,
+                daraja.pk,
             )
-        faollik_qayd_et(request.user, 'final_test')
+            return Response(
+                {
+                    'detail': "Yakuniy test natijasini saqlashda baza xatosi yuz berdi. Railway migratsiyasini deploy qiling.",
+                    'error_code': 'FINAL_TEST_SAVE_FAILED',
+                    'technical_detail': str(exc)[:240],
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
-        data = FinalTestNatijaSerializer(natija).data
+        # Quyidagi imkoniyatlar qo‘shimcha: ulardan biri xato qilsa natija va sertifikat bekor bo‘lmaydi.
+        if otdi:
+            # Bir daraja uchun bonus faqat sertifikat birinchi marta yaratilganda beriladi.
+            if sertifikat_yangi:
+                _xavfsiz_qoshimcha(
+                    'coin',
+                    lambda: coin_qoshish(request.user, 50, 'final_test', f"{daraja} yakuniy testidan o'tildi"),
+                )
+            _xavfsiz_qoshimcha(
+                'audit',
+                lambda: log_amal(
+                    request.user,
+                    'daraja_tugatildi',
+                    f"{daraja.fan.nomi} - {daraja.nomi}: {foiz}% bilan tugatildi",
+                    nishon_user=request.user,
+                ),
+            )
+            _xavfsiz_qoshimcha(
+                'certificate_notification',
+                lambda: bildirishnoma_yarat(
+                    request.user,
+                    'Sertifikatingiz tayyor!',
+                    f'{daraja.fan.nomi} — {daraja.nomi} darajasini {foiz}% bilan tugatdingiz.',
+                    tur='certificate',
+                    havola='/oquvchi/sertifikatlarim',
+                ),
+            )
+            if next_level:
+                _xavfsiz_qoshimcha(
+                    'next_level_notification',
+                    lambda: bildirishnoma_yarat(
+                        request.user,
+                        f'{next_level.nomi} darajasi ochildi',
+                        'Keyingi darajadagi mavzularni boshlashingiz mumkin.',
+                        tur='success',
+                        havola='/oquvchi',
+                    ),
+                )
+        else:
+            _xavfsiz_qoshimcha(
+                'failed_notification',
+                lambda: bildirishnoma_yarat(
+                    request.user,
+                    'Yakuniy testdan o‘tilmadi',
+                    f'{daraja.nomi} darajasida {foiz}% oldingiz. Keyingi daraja uchun kamida 80% kerak.',
+                    tur='warning',
+                    havola=f'/oquvchi/final-test/{daraja.id}',
+                ),
+            )
+
+        _xavfsiz_qoshimcha('activity', lambda: faollik_qayd_et(request.user, 'final_test'))
+
+        # select_related serializerning legacy bazada ortiqcha query xatolarini kamaytiradi.
+        natija = FinalTestNatija.objects.select_related(
+            'sertifikat__oquvchi', 'sertifikat__daraja__fan'
+        ).get(pk=natija.pk)
+        data = FinalTestNatijaSerializer(natija, context={'request': request}).data
         data['keyingi_daraja'] = (
-            {
-                'id': next_level.id,
-                'nomi': next_level.nomi,
-                'ochildi': bool(otdi),
-            }
+            {'id': next_level.id, 'nomi': next_level.nomi, 'ochildi': bool(otdi)}
             if next_level else None
         )
         data['xabar'] = (
